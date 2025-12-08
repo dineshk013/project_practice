@@ -56,9 +56,9 @@ CREATE DATABASE $db;
     $sqlCommands | mysql -u$mysqlUser -p$mysqlPassword -h$mysqlHost -P$mysqlPort 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  ✓ $db reset successfully" -ForegroundColor Green
+        Write-Host "  [OK] $db reset successfully" -ForegroundColor Green
     } else {
-        Write-Host "  ✗ Failed to reset $db" -ForegroundColor Red
+        Write-Host "  [FAIL] Failed to reset $db" -ForegroundColor Red
     }
 }
 
@@ -78,14 +78,14 @@ foreach ($db in $mongoDatabases) {
     Write-Host "Resetting MongoDB database: $db" -ForegroundColor Yellow
     
     # Drop database using mongosh
-    $mongoCommand = "use $db; db.dropDatabase();"
+    $mongoCommand = "use $db`; db.dropDatabase()`;"
     
     echo $mongoCommand | mongosh --quiet --host $mongoHost --port $mongoPort 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  ✓ $db reset successfully" -ForegroundColor Green
+        Write-Host "  [OK] $db reset successfully" -ForegroundColor Green
     } else {
-        Write-Host "  ✗ Failed to reset $db" -ForegroundColor Red
+        Write-Host "  [FAIL] Failed to reset $db" -ForegroundColor Red
     }
 }
 
