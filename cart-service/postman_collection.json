@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "Cart Service API",
+    "description": "RevCart Cart Service Endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Cart Operations",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-User-Id", "value": "2"}],
+            "url": {
+              "raw": "http://localhost:8083/api/cart",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "X-User-Id", "value": "2"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/api/cart/items",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "X-User-Id", "value": "2"}],
+            "url": {
+              "raw": "http://localhost:8083/api/cart/items/1?quantity=5",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart", "items", "1"],
+              "query": [{"key": "quantity", "value": "5"}]
+            }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "X-User-Id", "value": "2"}],
+            "url": {
+              "raw": "http://localhost:8083/api/cart/items/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart", "items", "1"]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "X-User-Id", "value": "2"}],
+            "url": {
+              "raw": "http://localhost:8083/api/cart/clear",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart", "clear"]
+            }
+          }
+        },
+        {
+          "name": "Get Cart Count",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-User-Id", "value": "2"}],
+            "url": {
+              "raw": "http://localhost:8083/api/cart/count",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart", "count"]
+            }
+          }
+        },
+        {
+          "name": "Validate Cart (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "X-User-Id", "value": "2"}],
+            "url": {
+              "raw": "http://localhost:8083/api/cart/validate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "cart", "validate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Actuator Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8083/actuator/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["actuator", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

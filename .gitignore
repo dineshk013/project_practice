@@ -1,0 +1,44 @@
+# Compiled class files
+*.class
+target/
+*.jar
+*.war
+*.ear
+
+# Log files
+*.log
+logs/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Node modules
+node_modules/
+dist/
+.angular/
+
+# Environment files
+.env
+*.env.local
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Build files
+build/
+out/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS files
+Thumbs.db
+.DS_Store

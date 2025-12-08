@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: cart-service
+  
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/revcart_carts?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Mahidinesh@07
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 60000
+  
+  cache:
+    type: ${CACHE_TYPE:none}  # Use 'redis' if Redis available, 'none' for fallback
+    redis:
+      time-to-live: 3600000
+
+server:
+  port: ${PORT:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      cloudwatch:
+        namespace: RevCart
+        batchSize: 20
+
+logging:
+  level:
+    root: INFO
+    com.revcart.cartservice: DEBUG
+
+# Feign clients
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+  circuitbreaker:
+    enabled: true
+
+# Service URLs - Route through gateway
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8080}
+  product-service:
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8080}

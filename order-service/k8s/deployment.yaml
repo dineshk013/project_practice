@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: revcart
+  labels:
+    app: order-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/revcart-order-service:latest
+        ports:
+        - containerPort: 8084
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: order-service-config
+              key: db.host
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: password
+        - name: USER_SERVICE_URL
+          value: "http://user-service.revcart.svc.cluster.local"
+        - name: PRODUCT_SERVICE_URL
+          value: "http://product-service.revcart.svc.cluster.local"
+        - name: CART_SERVICE_URL
+          value: "http://cart-service.revcart.svc.cluster.local"
+        - name: PAYMENT_SERVICE_URL
+          value: "http://payment-service.revcart.svc.cluster.local"
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "700m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-service-config
+  namespace: revcart
+data:
+  db.host: "revcart-mysql.xxxxx.us-east-1.rds.amazonaws.com"

@@ -1,0 +1,31 @@
+server:
+  port: 8087
+
+spring:
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: revcart_delivery
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+
+services:
+  order-service:
+    url: ${ORDER_SERVICE_URL:http://localhost:8084}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+  notification-service:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}

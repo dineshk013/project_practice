@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: user-service
+  
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:mahidineshk@gmail.com}
+    password: ${MAIL_PASSWORD:qzrxujdvtpoesbhr}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+  
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/revcart_users?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Mahidinesh@07
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: ${PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      cloudwatch:
+        namespace: RevCart
+        batchSize: 20
+
+logging:
+  level:
+    root: INFO
+    com.revcart.userservice: DEBUG
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:RevcartSuperUltraMegaJWTTokenSecretKeyForHS512Algorithm_1234567890}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# Feign clients
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+  circuitbreaker:
+    enabled: true

@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: order-service
+  
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/revcart_orders?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Mahidinesh@07
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: ${PORT:8084}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      cloudwatch:
+        namespace: RevCart
+        batchSize: 20
+
+logging:
+  level:
+    root: INFO
+    com.revcart.orderservice: DEBUG
+
+# Feign clients
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 10000
+        readTimeout: 30000
+        loggerLevel: full
+  circuitbreaker:
+    enabled: true
+
+# Circuit breaker configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      cart-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      cart-service:
+        timeoutDuration: 30s
+
+# Service URLs - All through gateway
+services:
+  gateway:
+    url: ${GATEWAY_URL:http://localhost:8080}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8080}
+  product-service:
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8080}
+  cart-service:
+    url: ${CART_SERVICE_URL:http://localhost:8080}
+  payment-service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8080}
+  delivery-service:
+    url: ${DELIVERY_SERVICE_URL:http://localhost:8080}
+  notification-service:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8080}

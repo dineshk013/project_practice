@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+      - name: notification-service
+        image: notification-service:latest
+        ports:
+        - containerPort: 8086
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: notification-config
+              key: db.host
+        - name: DB_PORT
+          value: "3306"
+        - name: USER_SERVICE_URL
+          value: "http://user-service"
+        - name: ORDER_SERVICE_URL
+          value: "http://order-service"
+        - name: PAYMENT_SERVICE_URL
+          value: "http://payment-service"
+        - name: MAIL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: notification-config
+              key: mail.host
+        - name: MAIL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: notification-config
+              key: mail.port
+        - name: MAIL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: mail.username
+        - name: MAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: mail.password
+        - name: NOTIFICATION_FROM_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: notification-config
+              key: notification.from.email
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8086
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8086
+          initialDelaySeconds: 30
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-config
+data:
+  db.host: "mysql-service"
+  mail.host: "smtp.gmail.com"
+  mail.port: "587"
+  notification.from.email: "noreply@revcart.com"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: notification-secrets
+type: Opaque
+stringData:
+  mail.username: "your-email@gmail.com"
+  mail.password: "your-app-password"
