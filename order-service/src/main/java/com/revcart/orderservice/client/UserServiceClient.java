@@ -6,6 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
+import java.util.Map;
 
 @FeignClient(name = "user-service", url = "${services.user-service.url}")
 public interface UserServiceClient {
@@ -15,4 +16,7 @@ public interface UserServiceClient {
     
     @GetMapping("/api/users/addresses")
     ApiResponse<java.util.List<AddressDto>> getAddresses(@RequestHeader("X-User-Id") Long userId);
+    
+    @GetMapping("/api/admin/users/stats")
+    ApiResponse<Map<String, Object>> getUserStats();
 }

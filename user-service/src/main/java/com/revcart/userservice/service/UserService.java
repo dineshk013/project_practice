@@ -146,4 +146,11 @@ public class UserService {
         dto.setPrimaryAddress(address.getIsDefault());
         return dto;
     }
+    
+    public java.util.Map<String, Object> getUserStats() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        long activeUsers = userRepository.countByActive(true);
+        stats.put("activeUsers", activeUsers);
+        return stats;
+    }
 }

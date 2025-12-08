@@ -82,4 +82,10 @@ public class ProductController {
         productService.releaseStock(request);
         return ResponseEntity.ok(ApiResponse.success(null, "Stock released successfully"));
     }
+    
+    @GetMapping("/admin/products/stats")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getProductStats() {
+        java.util.Map<String, Object> stats = productService.getProductStats();
+        return ResponseEntity.ok(ApiResponse.success(stats, "Product stats retrieved successfully"));
+    }
 }

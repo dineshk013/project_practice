@@ -313,15 +313,45 @@ public class OrderService {
 
     public Map<String, Object> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
+        
+        // 1. Total orders count
         long totalOrders = orderRepository.count();
+        
+        // 2. Total revenue (only COMPLETED or DELIVERED orders)
         double totalRevenue = orderRepository.findAll().stream()
+                .filter(order -> order.getStatus() == Order.OrderStatus.COMPLETED || 
+                                order.getStatus() == Order.OrderStatus.DELIVERED)
                 .mapToDouble(Order::getTotalAmount)
                 .sum();
+        
+        // 3. Total products from product service
+        long totalProducts = 0;
+        try {
+            ApiResponse<Map<String, Object>> productStats = productServiceClient.getProductStats();
+            if (productStats.isSuccess() && productStats.getData() != null) {
+                Object count = productStats.getData().get("totalProducts");
+                totalProducts = count != null ? ((Number) count).longValue() : 0;
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch product stats: {}", e.getMessage());
+        }
+        
+        // 4. Active users from user service
+        long activeUsers = 0;
+        try {
+            ApiResponse<Map<String, Object>> userStats = userServiceClient.getUserStats();
+            if (userStats.isSuccess() && userStats.getData() != null) {
+                Object count = userStats.getData().get("activeUsers");
+                activeUsers = count != null ? ((Number) count).longValue() : 0;
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch user stats: {}", e.getMessage());
+        }
 
         stats.put("totalOrders", totalOrders);
         stats.put("totalRevenue", totalRevenue);
-        stats.put("totalProducts", 0); // TODO: fetch from product service
-        stats.put("totalUsers", 0);    // TODO: fetch from user service
+        stats.put("totalProducts", totalProducts);
+        stats.put("activeUsers", activeUsers);
 
         return stats;
     }

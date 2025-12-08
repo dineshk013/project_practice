@@ -170,4 +170,11 @@ public class ProductService {
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         return product;
     }
+    
+    public java.util.Map<String, Object> getProductStats() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        long totalProducts = productRepository.count();
+        stats.put("totalProducts", totalProducts);
+        return stats;
+    }
 }

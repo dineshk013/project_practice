@@ -66,4 +66,16 @@ public class UserController {
         UserDto user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully"));
     }
+    
+    @GetMapping("/admin/users/stats")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getUserStats() {
+        java.util.Map<String, Object> stats = userService.getUserStats();
+        return ResponseEntity.ok(ApiResponse.success(stats, "User stats retrieved successfully"));
+    }
+    
+    @GetMapping("/admin/users")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
+        List<UserDto> users = userService.getAllUsers();
+        return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
+    }
 }
