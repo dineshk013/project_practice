@@ -25,6 +25,7 @@ $mysqlUser = "root"
 $mysqlPassword = "root"
 $mysqlHost = "localhost"
 $mysqlPort = "3306"
+$mysqlPath = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
 
 # MongoDB Configuration
 $mongoHost = "localhost"
@@ -53,7 +54,7 @@ DROP DATABASE IF EXISTS $db;
 CREATE DATABASE $db;
 "@
     
-    $sqlCommands | mysql -u$mysqlUser -p$mysqlPassword -h$mysqlHost -P$mysqlPort 2>&1 | Out-Null
+    $sqlCommands | & $mysqlPath -u$mysqlUser -p$mysqlPassword -h$mysqlHost -P$mysqlPort 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [OK] $db reset successfully" -ForegroundColor Green
