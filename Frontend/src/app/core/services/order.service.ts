@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError, map, throwError } from 'rxjs';
-import { Order, OrderItem } from '../models/order.model';
+import { Order, OrderItem, OrderStatus } from '../models/order.model';
 import { environment } from '../../../environments/environment';
 
 interface BackendOrderDto {

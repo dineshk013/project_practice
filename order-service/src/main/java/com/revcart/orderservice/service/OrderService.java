@@ -234,21 +234,31 @@ public class OrderService {
 
     @Transactional
     public OrderDto updateOrderStatus(Long id, Order.OrderStatus status) {
+        log.info("Updating order status: orderId={}, newStatus={}", id, status);
+        
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
 
+        log.info("Current order status: {}, userId: {}", order.getStatus(), order.getUserId());
+        
         order.setStatus(status);
-        Order updated = orderRepository.save(order);
-        log.info("Order status updated: {} -> {}", id, status);
-
-        // Send notification for status changes
-        if (status == Order.OrderStatus.SHIPPED) {
-            sendOrderNotification(id, order.getUserId(), "SHIPPED");
-        } else if (status == Order.OrderStatus.DELIVERED) {
-            sendOrderNotification(id, order.getUserId(), "DELIVERED");
+        
+        try {
+            Order updated = orderRepository.save(order);
+            log.info("Order status updated successfully: {} -> {}", id, status);
+            
+            // Send notification for status changes
+            if (status == Order.OrderStatus.SHIPPED || status == Order.OrderStatus.OUT_FOR_DELIVERY) {
+                sendOrderNotification(id, order.getUserId(), "SHIPPED");
+            } else if (status == Order.OrderStatus.DELIVERED) {
+                sendOrderNotification(id, order.getUserId(), "DELIVERED");
+            }
+            
+            return toDto(updated);
+        } catch (Exception e) {
+            log.error("Failed to update order status: orderId={}, status={}, error={}", id, status, e.getMessage(), e);
+            throw new RuntimeException("Failed to update order status: " + e.getMessage(), e);
         }
-
-        return toDto(updated);
     }
 
     @Transactional
