@@ -101,8 +101,8 @@ public class AdminOrderController {
 
 
     @GetMapping("/dashboard/stats")
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardStats() {
         Map<String, Object> stats = orderService.getDashboardStats();
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(ApiResponse.success(stats, "Dashboard stats retrieved successfully"));
     }
 }

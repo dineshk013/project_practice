@@ -153,4 +153,8 @@ public class UserService {
         stats.put("activeUsers", activeUsers);
         return stats;
     }
+    
+    public org.springframework.data.domain.Page<UserDto> getAllUsersPaged(org.springframework.data.domain.Pageable pageable) {
+        return userRepository.findAll(pageable).map(this::toUserDto);
+    }
 }

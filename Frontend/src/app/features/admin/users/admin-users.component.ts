@@ -7,12 +7,11 @@ import { LucideAngularModule, User, Shield, Truck, ShoppingCart, ToggleLeft, Tog
 
 interface UserDto {
   id: number;
-  fullName: string;
+  name: string;
   email: string;
   phone?: string;
   role: string;
-  active: boolean;
-  emailVerified: boolean;
+  active?: boolean;
   createdAt: string;
 }
 
@@ -56,59 +55,35 @@ interface ApiResponse<T> {
             <tbody class="divide-y divide-gray-200">
               @for (user of users; track user.id) {
                 <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 font-medium">{{ user.fullName }}</td>
+                  <td class="px-6 py-4 font-medium">{{ user.name }}</td>
                   <td class="px-6 py-4">{{ user.email }}</td>
                   <td class="px-6 py-4">{{ user.phone || 'N/A' }}</td>
                   <td class="px-6 py-4">
-                    <select
-                      [value]="user.role"
-                      (change)="updateRole(user.id, $event)"
-                      class="px-2 py-1 rounded text-xs border"
+                    <span
+                      class="px-2 py-1 rounded text-xs"
                       [ngClass]="getRoleClass(user.role)"
                     >
-                      <option value="CUSTOMER">Customer</option>
-                      <option value="ADMIN">Admin</option>
-                      <option value="DELIVERY_AGENT">Delivery Agent</option>
-                    </select>
-                  </td>
-                  <td class="px-6 py-4">
-                    <button
-                      (click)="toggleStatus(user)"
-                      class="flex items-center gap-2"
-                    >
-                      @if (user.active) {
-                        <lucide-icon [img]="ToggleRight" class="h-5 w-5 text-green-600"></lucide-icon>
-                        <span class="text-green-600 text-sm">Active</span>
-                      } @else {
-                        <lucide-icon [img]="ToggleLeft" class="h-5 w-5 text-gray-400"></lucide-icon>
-                        <span class="text-gray-400 text-sm">Inactive</span>
-                      }
-                    </button>
+                      {{ getRoleLabel(user.role) }}
+                    </span>
                   </td>
                   <td class="px-6 py-4">
                     <span
                       class="px-2 py-1 rounded-full text-xs"
-                      [ngClass]="user.emailVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                      [ngClass]="(user.active !== false) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
                     >
-                      {{ user.emailVerified ? 'Verified' : 'Pending' }}
+                      {{ (user.active !== false) ? 'Active' : 'Inactive' }}
                     </span>
                   </td>
                   <td class="px-6 py-4">
-                    <div class="flex gap-2">
-                      <button
-                        (click)="viewUser(user)"
-                        class="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                        [title]="getRoleIcon(user.role)"
-                      >
-                        @if (user.role === 'ADMIN') {
-                          <lucide-icon [img]="Shield" class="h-4 w-4"></lucide-icon>
-                        } @else if (user.role === 'DELIVERY_AGENT') {
-                          <lucide-icon [img]="Truck" class="h-4 w-4"></lucide-icon>
-                        } @else {
-                          <lucide-icon [img]="ShoppingCart" class="h-4 w-4"></lucide-icon>
-                        }
-                      </button>
-                    </div>
+                    <span class="text-sm text-gray-600">N/A</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <button
+                      (click)="viewUser(user)"
+                      class="text-blue-600 hover:underline text-sm"
+                    >
+                      View
+                    </button>
                   </td>
                 </tr>
               }
@@ -143,7 +118,7 @@ interface ApiResponse<T> {
             <div class="bg-white rounded-lg max-w-2xl w-full">
               <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
-                  <h2 class="text-2xl font-bold">{{ selectedUser.fullName }}</h2>
+                  <h2 class="text-2xl font-bold">{{ selectedUser.name }}</h2>
                   <button (click)="selectedUser = null" class="p-2 hover:bg-gray-100 rounded">×</button>
                 </div>
 
@@ -167,16 +142,8 @@ interface ApiResponse<T> {
                   <div>
                     <label class="text-sm font-medium text-gray-500">Status</label>
                     <p class="mt-1">
-                      <span [ngClass]="selectedUser.active ? 'text-green-600' : 'text-gray-400'" class="text-sm">
-                        {{ selectedUser.active ? 'Active' : 'Inactive' }}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-gray-500">Email Verified</label>
-                    <p class="mt-1">
-                      <span [ngClass]="selectedUser.emailVerified ? 'text-green-600' : 'text-yellow-600'" class="text-sm">
-                        {{ selectedUser.emailVerified ? 'Yes' : 'No' }}
+                      <span [ngClass]="(selectedUser.active !== false) ? 'text-green-600' : 'text-gray-400'" class="text-sm">
+                        {{ (selectedUser.active !== false) ? 'Active' : 'Inactive' }}
                       </span>
                     </p>
                   </div>
@@ -225,36 +192,13 @@ export class AdminUsersComponent implements OnInit {
       });
   }
 
-  updateRole(userId: number, event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const newRole = select.value;
-
-    this.http.put<ApiResponse<UserDto>>(`${environment.apiUrl}/admin/users/${userId}/role`, {
-      role: newRole
-    }).subscribe({
-      next: () => {
-        this.loadUsers();
-      },
-      error: () => {
-        alert('Failed to update user role');
-        this.loadUsers();
-      }
-    });
-  }
-
-  toggleStatus(user: UserDto): void {
-    const newStatus = !user.active;
-    this.http.put<ApiResponse<UserDto>>(`${environment.apiUrl}/admin/users/${user.id}/status`, {
-      active: newStatus
-    }).subscribe({
-      next: () => {
-        user.active = newStatus;
-      },
-      error: () => {
-        alert('Failed to update user status');
-        this.loadUsers();
-      }
-    });
+  getRoleLabel(role: string): string {
+    const labels: { [key: string]: string } = {
+      'USER': 'Customer',
+      'ADMIN': 'Admin',
+      'DELIVERY_AGENT': 'Delivery Agent'
+    };
+    return labels[role] || role;
   }
 
   viewUser(user: UserDto): void {
@@ -275,7 +219,7 @@ export class AdminUsersComponent implements OnInit {
 
   getRoleClass(role: string): string {
     const classes: { [key: string]: string } = {
-      'CUSTOMER': 'bg-blue-100 text-blue-800',
+      'USER': 'bg-blue-100 text-blue-800',
       'ADMIN': 'bg-purple-100 text-purple-800',
       'DELIVERY_AGENT': 'bg-green-100 text-green-800'
     };

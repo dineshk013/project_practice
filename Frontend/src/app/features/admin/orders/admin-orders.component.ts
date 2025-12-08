@@ -8,6 +8,7 @@ import { LucideAngularModule, Eye, Package } from 'lucide-angular';
 interface OrderDto {
   id: number;
   orderNumber?: string;
+  customerName?: string;
   status: string;
   paymentStatus: string;
   totalAmount: number;
@@ -70,10 +71,7 @@ interface PagedResponse<T> {
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 font-medium">#{{ order.orderNumber || order.id }}</td>
                   <td class="px-6 py-4">
-                    <div>
-                      <div class="font-medium">{{ order.user ? order.user.fullName : 'N/A' }}</div>
-                      <div class="text-sm text-gray-500">{{ order.user ? order.user.email : '' }}</div>
-                    </div>
+                    <div class="font-medium">{{ order.customerName || (order.user ? order.user.fullName : 'N/A') }}</div>
                   </td>
                   <td class="px-6 py-4">{{ formatDate(order.createdAt) }}</td>
                   <td class="px-6 py-4">{{ order.items ? order.items.length : 0 }} items</td>
@@ -85,10 +83,13 @@ interface PagedResponse<T> {
                       class="px-2 py-1 rounded text-xs border"
                       [ngClass]="getStatusClass(order.status)"
                     >
-                      <option value="PLACED">Placed</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="PROCESSING">Processing</option>
                       <option value="PACKED">Packed</option>
                       <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                      <option value="SHIPPED">In Transit</option>
                       <option value="DELIVERED">Delivered</option>
+                      <option value="COMPLETED">Completed</option>
                       <option value="CANCELLED">Cancelled</option>
                     </select>
                   </td>
@@ -148,8 +149,7 @@ interface PagedResponse<T> {
                 <div class="space-y-4">
                   <div>
                     <h3 class="font-semibold mb-2">Customer Information</h3>
-                    <p>{{ selectedOrder.user ? selectedOrder.user.fullName : 'N/A' }}</p>
-                    <p class="text-sm text-gray-600">{{ selectedOrder.user ? selectedOrder.user.email : '' }}</p>
+                    <p>{{ selectedOrder.customerName || (selectedOrder.user ? selectedOrder.user.fullName : 'N/A') }}</p>
                   </div>
 
                   <div>
@@ -282,10 +282,13 @@ export class AdminOrdersComponent implements OnInit {
 
   getStatusClass(status: string): string {
     const classes: { [key: string]: string } = {
-      'PLACED': 'bg-yellow-100 text-yellow-800',
-      'PACKED': 'bg-blue-100 text-blue-800',
-      'OUT_FOR_DELIVERY': 'bg-purple-100 text-purple-800',
+      'PENDING': 'bg-yellow-100 text-yellow-800',
+      'PROCESSING': 'bg-blue-100 text-blue-800',
+      'PACKED': 'bg-purple-100 text-purple-800',
+      'OUT_FOR_DELIVERY': 'bg-orange-100 text-orange-800',
+      'SHIPPED': 'bg-orange-100 text-orange-800',
       'DELIVERED': 'bg-green-100 text-green-800',
+      'COMPLETED': 'bg-green-100 text-green-800',
       'CANCELLED': 'bg-red-100 text-red-800'
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
