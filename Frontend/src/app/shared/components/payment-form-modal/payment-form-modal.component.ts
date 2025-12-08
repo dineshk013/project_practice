@@ -312,6 +312,13 @@ export class PaymentFormModalComponent {
     
     // Emit the card details to parent component
     this.paymentSubmitted.emit(this.cardDetails());
+    
+    // Reset processing state after a delay to allow parent to handle
+    setTimeout(() => {
+      if (this.isProcessing()) {
+        this.isProcessing.set(false);
+      }
+    }, 5000);
   }
 
   closeModal(): void {
@@ -319,6 +326,11 @@ export class PaymentFormModalComponent {
       return; // Prevent closing while processing
     }
     
+    this.resetModal();
+    this.modalClosed.emit();
+  }
+
+  private resetModal(): void {
     this.cardDetails.set({
       cardHolderName: '',
       cardNumber: '',
@@ -328,7 +340,7 @@ export class PaymentFormModalComponent {
     });
     this.errors.set({});
     this.errorMessage.set(null);
-    this.modalClosed.emit();
+    this.isProcessing.set(false);
   }
 
   onBackdropClick(event: MouseEvent): void {

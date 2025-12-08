@@ -280,16 +280,15 @@ export class CheckoutComponent implements OnInit {
             .subscribe({
                 next: (response) => {
                     if (response.success && response.data) {
+                        // Clear cart and close modal
                         this.cartService.clearCart();
                         this.showPaymentModal.set(false);
                         this.paymentError.set(null);
-                        this.router.navigate(['/payment/success'], {
-                            queryParams: {
-                                paymentId: response.data.paymentId,
-                                orderId: orderId,
-                                amount: amount
-                            }
-                        });
+                        this.currentOrderId.set(null);
+                        this.currentOrderAmount.set(null);
+                        
+                        // Redirect to My Orders instead of payment success
+                        this.router.navigate(['/orders']);
                     } else {
                         this.paymentError.set(response.message || 'Payment failed');
                     }

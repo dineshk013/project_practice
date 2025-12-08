@@ -24,7 +24,7 @@ interface PaymentResponse {
   providedIn: 'root'
 })
 export class PaymentService {
-  private apiUrl = `${environment.apiUrl}/payment`;
+  private apiUrl = `${environment.apiUrl}/payments`;
 
   constructor(private httpClient: HttpClient) { }
 
@@ -40,6 +40,8 @@ export class PaymentService {
       amount
     };
 
+    console.log('Processing payment:', request);
+    
     return this.httpClient.post<ApiResponse<PaymentResponse>>(
       `${this.apiUrl}/dummy`,
       request
