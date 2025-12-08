@@ -38,8 +38,18 @@ public class AuthService {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
         user.setName(request.getName().trim());
-        user.setPhone(request.getPhone().trim());
-        user.setRole(User.Role.USER);
+        user.setPhone(request.getPhone() != null ? request.getPhone().trim() : null);
+        
+        // Handle role assignment
+        User.Role selectedRole = User.Role.CUSTOMER; // default
+        if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
+            String roleStr = request.getRole().trim().toUpperCase();
+            if (!java.util.List.of("CUSTOMER", "DELIVERY_AGENT", "ADMIN").contains(roleStr)) {
+                throw new BadRequestException("Invalid role: " + request.getRole());
+            }
+            selectedRole = User.Role.valueOf(roleStr);
+        }
+        user.setRole(selectedRole);
         user.setActive(true);
 
         User saved = userRepository.save(user);

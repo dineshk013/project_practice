@@ -38,6 +38,9 @@ public class Order {
     @Column(name = "payment_method")
     private String paymentMethod;
 
+    @Column(name = "delivery_agent_id")
+    private Long deliveryAgentId;
+
     @Embedded
     private DeliveryAddress deliveryAddress;
 
@@ -65,7 +68,8 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PENDING,          // newly placed, awaiting processing
+        PENDING,          // newly placed, awaiting payment
+        PAYMENT_SUCCESS,  // payment completed, order confirmed
         PROCESSING,       // being prepared
         PACKED,           // packed and ready
         OUT_FOR_DELIVERY, // out with delivery agent

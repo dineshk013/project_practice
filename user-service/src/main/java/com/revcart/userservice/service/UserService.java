@@ -123,7 +123,9 @@ public class UserService {
     }
 
     private UserDto toUserDto(User user) {
-        return new UserDto(user.getId(), user.getEmail(), user.getName(), user.getPhone(), user.getRole(), user.getCreatedAt());
+        UserDto dto = new UserDto(user.getId(), user.getEmail(), user.getName(), user.getPhone(), user.getRole(), user.getCreatedAt());
+        dto.setActive(user.getActive());
+        return dto;
     }
 
     public List<UserDto> getAllUsers() {
@@ -156,5 +158,15 @@ public class UserService {
     
     public org.springframework.data.domain.Page<UserDto> getAllUsersPaged(org.springframework.data.domain.Pageable pageable) {
         return userRepository.findAll(pageable).map(this::toUserDto);
+    }
+    
+    public long countActiveUsers() {
+        return userRepository.countActiveUsers();
+    }
+    
+    public List<UserDto> getDeliveryAgents() {
+        return userRepository.findByRole(User.Role.DELIVERY_AGENT).stream()
+                .map(this::toUserDto)
+                .collect(Collectors.toList());
     }
 }

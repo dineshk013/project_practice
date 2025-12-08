@@ -53,39 +53,47 @@ interface ApiResponse<T> {
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-              @for (user of users; track user.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 font-medium">{{ user.name }}</td>
-                  <td class="px-6 py-4">{{ user.email }}</td>
-                  <td class="px-6 py-4">{{ user.phone || 'N/A' }}</td>
-                  <td class="px-6 py-4">
-                    <span
-                      class="px-2 py-1 rounded text-xs"
-                      [ngClass]="getRoleClass(user.role)"
-                    >
-                      {{ getRoleLabel(user.role) }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span
-                      class="px-2 py-1 rounded-full text-xs"
-                      [ngClass]="(user.active !== false) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                    >
-                      {{ (user.active !== false) ? 'Active' : 'Inactive' }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="text-sm text-gray-600">N/A</span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <button
-                      (click)="viewUser(user)"
-                      class="text-blue-600 hover:underline text-sm"
-                    >
-                      View
-                    </button>
+              @if (users.length === 0) {
+                <tr>
+                  <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                    No users found
                   </td>
                 </tr>
+              } @else {
+                @for (user of users; track user.id) {
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium">{{ user.name }}</td>
+                    <td class="px-6 py-4">{{ user.email }}</td>
+                    <td class="px-6 py-4">{{ user.phone || 'N/A' }}</td>
+                    <td class="px-6 py-4">
+                      <span
+                        class="px-2 py-1 rounded text-xs"
+                        [ngClass]="getRoleClass(user.role)"
+                      >
+                        {{ getRoleLabel(user.role) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span
+                        class="px-2 py-1 rounded-full text-xs"
+                        [ngClass]="(user.active !== false) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                      >
+                        {{ (user.active !== false) ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="text-sm text-gray-600">N/A</span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <button
+                        (click)="viewUser(user)"
+                        class="text-blue-600 hover:underline text-sm"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -180,14 +188,17 @@ export class AdminUsersComponent implements OnInit {
   }
 
   loadUsers(): void {
-    this.http.get<PagedResponse<UserDto>>(`${environment.apiUrl}/admin/users?page=${this.currentPage}&size=20`)
+    this.http.get<ApiResponse<UserDto[]>>(`${environment.userServiceUrl}/api/admin/users`)
       .subscribe({
         next: (response) => {
-          this.users = response.content;
-          this.totalPages = response.totalPages;
+          if (response.success && response.data) {
+            this.users = response.data;
+            this.totalPages = 1;
+          }
         },
         error: (err) => {
           console.error('Failed to load users:', err);
+          this.users = [];
         }
       });
   }
@@ -202,9 +213,9 @@ export class AdminUsersComponent implements OnInit {
   }
 
   viewUser(user: UserDto): void {
-    this.http.get<UserDto>(`${environment.apiUrl}/admin/users/${user.id}`).subscribe({
-      next: (fullUser) => {
-        this.selectedUser = fullUser;
+    this.http.get<ApiResponse<UserDto>>(`${environment.userServiceUrl}/api/admin/users/${user.id}`).subscribe({
+      next: (response) => {
+        this.selectedUser = response.success && response.data ? response.data : user;
       },
       error: () => {
         this.selectedUser = user;

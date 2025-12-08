@@ -6,37 +6,39 @@ import { OrderService } from '../../../core/services/order.service';
 import { ProductService } from '../../../core/services/product.service';
 import { Order } from '../../../core/models/order.model';
 import { environment } from '../../../../environments/environment';
-import { LucideAngularModule, Package, Users, DollarSign, TrendingUp } from 'lucide-angular';
+import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular';
 
 @Component({
-    selector: 'app-admin-dashboard',
-    standalone: true,
-    imports: [CommonModule, RouterModule, LucideAngularModule],
-    template: `
+  selector: 'app-admin-dashboard',
+  standalone: true,
+  imports: [CommonModule, RouterModule, LucideAngularModule],
+  template: `
     <div class="min-h-screen bg-background py-8">
       <div class="container mx-auto px-4">
         <h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          
+          <!-- TOTAL ORDERS -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Total Orders</h3>
               <lucide-icon [img]="Package" class="h-5 w-5 text-primary"></lucide-icon>
             </div>
             <p class="text-3xl font-bold">{{ stats.totalOrders }}</p>
-            <p class="text-xs text-green-600 mt-1">+12% from last month</p>
           </div>
 
+          <!-- TOTAL REVENUE -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Total Revenue</h3>
               <lucide-icon [img]="DollarSign" class="h-5 w-5 text-primary"></lucide-icon>
             </div>
-            <p class="text-3xl font-bold">\₹{{ stats.totalRevenue.toFixed(2) }}</p>
-            <p class="text-xs text-green-600 mt-1">+18% from last month</p>
+            <p class="text-3xl font-bold">₹{{ stats.totalRevenue.toFixed(2) }}</p>
           </div>
 
+          <!-- TOTAL PRODUCTS -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Total Products</h3>
@@ -46,49 +48,14 @@ import { LucideAngularModule, Package, Users, DollarSign, TrendingUp } from 'luc
             <p class="text-xs text-blue-600 mt-1">{{ stats.inStock }} in stock</p>
           </div>
 
+          <!-- ACTIVE USERS -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Active Users</h3>
               <lucide-icon [img]="Users" class="h-5 w-5 text-primary"></lucide-icon>
             </div>
             <p class="text-3xl font-bold">{{ stats.activeUsers }}</p>
-            <p class="text-xs text-green-600 mt-1">+5% from last month</p>
           </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <button
-            routerLink="/admin/products"
-            class="p-6 bg-white border rounded-lg hover:shadow-md transition-shadow text-left"
-          >
-            <h3 class="font-semibold mb-2">Manage Products</h3>
-            <p class="text-sm text-muted-foreground">Add, edit, or remove products</p>
-          </button>
-
-          <button
-            routerLink="/admin/categories"
-            class="p-6 bg-white border rounded-lg hover:shadow-md transition-shadow text-left"
-          >
-            <h3 class="font-semibold mb-2">Manage Categories</h3>
-            <p class="text-sm text-muted-foreground">Add, edit, or remove categories</p>
-          </button>
-
-          <button
-            routerLink="/admin/orders"
-            class="p-6 bg-white border rounded-lg hover:shadow-md transition-shadow text-left"
-          >
-            <h3 class="font-semibold mb-2">Manage Orders</h3>
-            <p class="text-sm text-muted-foreground">View and update order status</p>
-          </button>
-
-          <button
-            routerLink="/admin/users"
-            class="p-6 bg-white border rounded-lg hover:shadow-md transition-shadow text-left"
-          >
-            <h3 class="font-semibold mb-2">Manage Users</h3>
-            <p class="text-sm text-muted-foreground">View and manage user accounts</p>
-          </button>
         </div>
 
         <!-- Recent Orders -->
@@ -111,24 +78,20 @@ import { LucideAngularModule, Package, Users, DollarSign, TrendingUp } from 'luc
                     <td class="py-3 px-4 font-medium">{{ order.id }}</td>
                     <td class="py-3 px-4">{{ order.date }}</td>
                     <td class="py-3 px-4">
-                      <span
-                        class="px-2 py-1 rounded-full text-xs"
+                      <span class="px-2 py-1 rounded-full text-xs"
                         [ngClass]="{
                           'bg-yellow-100 text-yellow-800': order.status === 'processing',
+                          'bg-purple-100 text-purple-800': order.status === 'packed',
                           'bg-blue-100 text-blue-800': order.status === 'in_transit',
                           'bg-green-100 text-green-800': order.status === 'delivered',
                           'bg-red-100 text-red-800': order.status === 'cancelled'
-                        }"
-                      >
+                        }">
                         {{ order.status }}
                       </span>
                     </td>
-                    <td class="py-3 px-4">\₹{{ order.total.toFixed(2) }}</td>
+                    <td class="py-3 px-4">₹{{ order.total.toFixed(2) }}</td>
                     <td class="py-3 px-4">
-                      <button
-                        routerLink="/admin/orders"
-                        class="text-primary hover:underline"
-                      >
+                      <button routerLink="/admin/orders" class="text-primary hover:underline">
                         View
                       </button>
                     </td>
@@ -143,81 +106,82 @@ import { LucideAngularModule, Package, Users, DollarSign, TrendingUp } from 'luc
   `
 })
 export class AdminDashboardComponent implements OnInit {
-    http = inject(HttpClient);
-    orderService = inject(OrderService);
-    productService = inject(ProductService);
 
-    readonly Package = Package;
-    readonly Users = Users;
-    readonly DollarSign = DollarSign;
-    readonly TrendingUp = TrendingUp;
+  http = inject(HttpClient);
+  productService = inject(ProductService);
 
-    stats = {
-        totalOrders: 0,
-        totalRevenue: 0,
-        totalProducts: 0,
-        inStock: 0,
-        activeUsers: 0
+  readonly Package = Package;
+  readonly Users = Users;
+  readonly DollarSign = DollarSign;
+
+  stats = {
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalProducts: 0,
+    inStock: 0,
+    activeUsers: 0
+  };
+
+  recentOrders: Order[] = [];
+
+  ngOnInit(): void {
+    this.loadStats();
+    this.loadRecentOrders();
+
+    // Dashboard refresh trigger from Manage Orders
+    window.addEventListener('orderUpdated', () => {
+      this.loadStats();
+      this.loadRecentOrders();
+    });
+  }
+
+  loadStats(): void {
+    this.http.get<any>(`${environment.apiUrl}/admin/dashboard/stats`)
+      .subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            this.stats.totalOrders = response.data.totalOrders;
+            this.stats.totalRevenue = response.data.totalRevenue;
+            this.stats.totalProducts = response.data.totalProducts;
+            this.stats.activeUsers = response.data.activeUsers;
+          }
+        },
+        error: err => console.error('Dashboard stats error:', err)
+      });
+
+    this.productService.getProducts()
+      .subscribe((products) => {
+        this.stats.inStock = products.filter(p => p.inStock).length;
+      });
+  }
+
+  loadRecentOrders(): void {
+    const params = new HttpParams().set('page', 0).set('size', 5);
+    this.http.get<any>(`${environment.apiUrl}/admin/orders`, { params })
+      .subscribe({
+        next: (response) => {
+          this.recentOrders = response.content.map((order: any) => ({
+            id: String(order.id),
+            date: order.createdAt.split('T')[0],
+            status: this.mapStatus(order.status),
+            total: order.totalAmount
+          }));
+        },
+        error: err => console.error('Recent orders error:', err)
+      });
+  }
+
+  private mapStatus(status: string): Order['status'] {
+    const lookup: { [key: string]: Order['status'] } = {
+      'PENDING': 'processing',
+      'PROCESSING': 'processing',
+      'PACKED': 'packed',
+      'OUT_FOR_DELIVERY': 'in_transit',
+      'SHIPPED': 'in_transit',
+      'DELIVERED': 'delivered',
+      'COMPLETED': 'delivered',
+      'CANCELLED': 'cancelled'
     };
-
-    recentOrders: Order[] = [];
-
-    ngOnInit(): void {
-        this.loadDashboardData();
-    }
-
-    loadDashboardData(): void {
-        // Load statistics from admin endpoint
-        this.http.get<any>(`${environment.apiUrl}/admin/dashboard/stats`).subscribe({
-            next: (response) => {
-                if (response.success && response.data) {
-                    this.stats.totalOrders = response.data.totalOrders || 0;
-                    this.stats.totalRevenue = response.data.totalRevenue || 0;
-                    this.stats.totalProducts = response.data.totalProducts || 0;
-                    this.stats.activeUsers = response.data.activeUsers || 0;
-                }
-            },
-            error: (err) => {
-                console.error('Failed to load dashboard stats:', err);
-            }
-        });
-
-        // Load recent orders from admin endpoint
-        const params = new HttpParams().set('page', 0).set('size', 10);
-        this.http.get<any>(`${environment.apiUrl}/admin/orders`, { params }).subscribe({
-            next: (response) => {
-                if (response.content) {
-                    this.recentOrders = response.content.map((order: any) => ({
-                        id: String(order.id),
-                        date: order.createdAt ? order.createdAt.split('T')[0] : '',
-                        status: this.mapStatus(order.status),
-                        items: order.items || [],
-                        total: order.totalAmount || 0,
-                        deliveryAddress: order.shippingAddress
-                            ? `${order.shippingAddress.line1}, ${order.shippingAddress.city}`
-                            : ''
-                    }));
-                }
-            },
-            error: (err) => {
-                console.error('Failed to load recent orders:', err);
-            }
-        });
-
-        // Load products for inStock count
-        this.productService.getProducts().subscribe(products => {
-            this.stats.inStock = products.filter(p => p.inStock).length;
-        });
-    }
-
-    private mapStatus(backendStatus: string): Order['status'] {
-        const statusMap: { [key: string]: Order['status'] } = {
-            'PLACED': 'processing',
-            'PACKED': 'processing',
-            'OUT_FOR_DELIVERY': 'in_transit',
-            'DELIVERED': 'delivered',
-            'CANCELLED': 'cancelled'
-        };
-        return statusMap[backendStatus?.toUpperCase()] || 'processing';
-    }
+    return lookup[status.toUpperCase()] || 'processing';
+  }
 }

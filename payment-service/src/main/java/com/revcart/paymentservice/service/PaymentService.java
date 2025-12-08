@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -159,29 +160,42 @@ public class PaymentService {
         return dto;
     }
 
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(noRollbackFor = Exception.class)
     public DummyPaymentResponse processDummyPayment(DummyPaymentRequest request) {
         log.info("Processing dummy payment for orderId: {}, userId: {}, amount: {}", 
                 request.getOrderId(), request.getUserId(), request.getAmount());
 
         try {
-            // Create payment record without checking order existence
-            Payment payment = new Payment();
-            payment.setOrderId(request.getOrderId());
-            payment.setUserId(request.getUserId());
-            payment.setAmount(request.getAmount());
-            payment.setPaymentMethod(request.getPaymentMethod());
-            payment.setStatus(Payment.PaymentStatus.SUCCESS);
-            payment.setTransactionId("TXN-" + UUID.randomUUID().toString());
+            // Check if payment already exists for this order
+            Payment payment = paymentRepository.findByOrderId(request.getOrderId())
+                    .orElse(null);
+
+            if (payment != null) {
+                // Update existing payment
+                log.info("Updating existing payment for order: {}", request.getOrderId());
+                payment.setStatus(Payment.PaymentStatus.SUCCESS);
+                payment.setTransactionId("TXN-" + UUID.randomUUID().toString());
+                payment.setUpdatedAt(LocalDateTime.now());
+            } else {
+                // Create new payment record
+                log.info("Creating new payment for order: {}", request.getOrderId());
+                payment = new Payment();
+                payment.setOrderId(request.getOrderId());
+                payment.setUserId(request.getUserId());
+                payment.setAmount(request.getAmount());
+                payment.setPaymentMethod(request.getPaymentMethod());
+                payment.setStatus(Payment.PaymentStatus.SUCCESS);
+                payment.setTransactionId("TXN-" + UUID.randomUUID().toString());
+            }
 
             Payment saved = paymentRepository.save(payment);
             log.info("Dummy payment successful: {} for order: {}", saved.getId(), request.getOrderId());
 
-            // Notify order service about payment success
+            // Notify order service about payment success - mark as PAYMENT_SUCCESS
             try {
-                ApiResponse<Object> response = orderServiceClient.updatePaymentStatus(request.getOrderId(), "COMPLETED");
+                ApiResponse<Object> response = orderServiceClient.updatePaymentStatus(request.getOrderId(), "PAYMENT_SUCCESS");
                 if (response.isSuccess()) {
-                    log.info("✅ Order payment status updated successfully for order: {}", request.getOrderId());
+                    log.info("✅ Order marked as PAYMENT_SUCCESS for order: {}", request.getOrderId());
                 } else {
                     log.warn("⚠️ Order payment status update returned failure: {}", response.getMessage());
                 }
@@ -189,7 +203,7 @@ public class PaymentService {
                 log.error("❌ Failed to update order payment status for order: {}, error: {}", request.getOrderId(), e.getMessage());
             }
 
-            // Send notification
+            // Send payment success notification
             sendPaymentNotification(saved.getId(), request.getUserId(), request.getOrderId(), "SUCCESS", null);
 
             return new DummyPaymentResponse(
@@ -197,12 +211,12 @@ public class PaymentService {
                     saved.getTransactionId(),
                     "Payment processed successfully"
             );
-        } catch (Exception e) {
-            log.error("Dummy payment failed for order: {}, error: {}", request.getOrderId(), e.getMessage());
+        } catch (Exception ex) {
+            log.error("Dummy payment failed", ex);
             return new DummyPaymentResponse(
                     "FAILED",
                     null,
-                    "Payment processing failed: " + e.getMessage()
+                    "Payment processing failed: " + ex.getMessage()
             );
         }
     }

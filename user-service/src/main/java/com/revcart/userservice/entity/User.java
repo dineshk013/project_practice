@@ -31,7 +31,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role = Role.USER;
+    private Role role = Role.CUSTOMER;
 
     @Column(nullable = false)
     private Boolean active = true;
@@ -57,6 +57,6 @@ public class User {
     }
 
     public enum Role {
-        USER, ADMIN, DELIVERY_AGENT
+        CUSTOMER, ADMIN, DELIVERY_AGENT
     }
 }

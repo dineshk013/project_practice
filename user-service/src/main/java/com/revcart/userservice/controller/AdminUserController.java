@@ -23,21 +23,9 @@ public class AdminUserController {
     private final UserService userService;
 
     @GetMapping("/users")
-    public ResponseEntity<Map<String, Object>> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<UserDto> userPage = userService.getAllUsersPaged(pageable);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("content", userPage.getContent());
-        response.put("page", userPage.getNumber());
-        response.put("size", userPage.getSize());
-        response.put("totalElements", userPage.getTotalElements());
-        response.put("totalPages", userPage.getTotalPages());
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
+        List<UserDto> users = userService.getAllUsers();
+        return ResponseEntity.ok(ApiResponse.success(users, "Users fetched"));
     }
 
     @GetMapping("/users/stats")
@@ -50,5 +38,16 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable Long id) {
         UserDto user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully"));
+    }
+    
+    @GetMapping("/count/active")
+    public long getActiveUsers() {
+        return userService.countActiveUsers();
+    }
+    
+    @GetMapping("/delivery-agents")
+    public ResponseEntity<ApiResponse<List<UserDto>>> getDeliveryAgents() {
+        List<UserDto> agents = userService.getDeliveryAgents();
+        return ResponseEntity.ok(ApiResponse.success(agents, "Delivery agents retrieved successfully"));
     }
 }

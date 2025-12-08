@@ -100,6 +100,12 @@ public class AdminOrderController {
     }
 
 
+    @GetMapping("/orders/{id}")
+    public ResponseEntity<ApiResponse<OrderDto>> getAdminOrderById(@PathVariable Long id) {
+        OrderDto order = orderService.getOrderById(id);
+        return ResponseEntity.ok(ApiResponse.success(order, "Order retrieved successfully"));
+    }
+
     @GetMapping("/dashboard/stats")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardStats() {
         Map<String, Object> stats = orderService.getDashboardStats();

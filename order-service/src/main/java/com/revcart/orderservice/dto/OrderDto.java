@@ -18,8 +18,9 @@ public class OrderDto {
     private String orderNumber;
     private Order.OrderStatus status;
     private Double totalAmount;
-    private Order.PaymentStatus paymentStatus;
+    private String paymentStatus;
     private String paymentMethod;
+    private Long deliveryAgentId;
     
     @JsonProperty("deliveryAddress")
     private AddressDto deliveryAddress;

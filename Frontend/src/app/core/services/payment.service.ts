@@ -14,6 +14,7 @@ interface DummyPaymentRequest {
   userId: number;
   amount: number;
   paymentMethod: string;
+  upiId?: string;
 }
 
 interface PaymentResponse {
@@ -36,14 +37,16 @@ export class PaymentService {
    * @param userId - The user ID
    * @param amount - The payment amount
    * @param paymentMethod - The payment method
+   * @param upiId - The UPI ID (optional, for UPI payments)
    * @returns Observable with payment response
    */
-  processDummyPayment(orderId: number, userId: number, amount: number, paymentMethod: string): Observable<ApiResponse<PaymentResponse>> {
+  processDummyPayment(orderId: number, userId: number, amount: number, paymentMethod: string, upiId?: string): Observable<ApiResponse<PaymentResponse>> {
     const request: DummyPaymentRequest = {
       orderId,
       userId,
       amount,
-      paymentMethod
+      paymentMethod,
+      ...(upiId && { upiId })
     };
 
     console.log('Processing payment:', request);

@@ -141,11 +141,15 @@ public class OrderService {
             log.error("ORDER NOT FOUND IN DB AFTER SAVE! This should never happen.");
         }
 
-        // 8. Update payment status for COD
+        // 8. Handle COD orders - mark as confirmed immediately
         if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
             saved.setPaymentStatus(Order.PaymentStatus.COD);
+            saved.setStatus(Order.OrderStatus.PAYMENT_SUCCESS);
             orderRepository.save(saved);
-            log.info("COD payment status updated for order: {}", saved.getOrderNumber());
+            log.info("COD order confirmed for order: {}", saved.getOrderNumber());
+            
+            // Send confirmation notification for COD
+            sendOrderNotification(saved.getId(), userId, "CONFIRMED");
         }
 
         // 9-12. Post-order operations (non-blocking, external services)
@@ -192,13 +196,7 @@ public class OrderService {
             log.error("Delivery assignment failed for order: {}, error: {}", order.getId(), e.getMessage());
         }
 
-        // Send notification (non-blocking)
-        try {
-            sendOrderNotification(order.getId(), userId, "PLACED");
-        } catch (Exception e) {
-            notificationSuccess = false;
-            log.error("Notification failed for order: {}, error: {}", order.getId(), e.getMessage());
-        }
+        // Note: Notification is sent only after payment success or for COD orders
 
         // Clear cart
         try {
@@ -242,6 +240,22 @@ public class OrderService {
         log.info("Current order status: {}, userId: {}", order.getStatus(), order.getUserId());
         
         order.setStatus(status);
+        
+        // Auto-assign delivery agent when status changes to OUT_FOR_DELIVERY
+        if (status == Order.OrderStatus.OUT_FOR_DELIVERY && order.getDeliveryAgentId() == null) {
+            try {
+                ApiResponse<java.util.List<Object>> agentsResponse = userServiceClient.getDeliveryAgents();
+                if (agentsResponse.isSuccess() && agentsResponse.getData() != null && !agentsResponse.getData().isEmpty()) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> firstAgent = (java.util.Map<String, Object>) agentsResponse.getData().get(0);
+                    Long agentId = ((Number) firstAgent.get("id")).longValue();
+                    order.setDeliveryAgentId(agentId);
+                    log.info("Auto-assigned delivery agent {} to order {}", agentId, id);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to auto-assign delivery agent for order {}: {}", id, e.getMessage());
+            }
+        }
         
         try {
             Order updated = orderRepository.save(order);
@@ -327,31 +341,40 @@ public class OrderService {
         // 3. Total products from product service
         long totalProducts = 0;
         try {
-            ApiResponse<Map<String, Object>> productStats = productServiceClient.getProductStats();
-            if (productStats.isSuccess() && productStats.getData() != null) {
-                Object count = productStats.getData().get("totalProducts");
-                totalProducts = count != null ? ((Number) count).longValue() : 0;
+            ApiResponse<Object> productResponse = productServiceClient.getAllProducts();
+            if (productResponse.isSuccess() && productResponse.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.List<Object> products = (java.util.List<Object>) productResponse.getData();
+                totalProducts = products.size();
             }
         } catch (Exception e) {
-            log.error("Failed to fetch product stats: {}", e.getMessage());
+            log.error("Failed to fetch products: {}", e.getMessage());
         }
         
-        // 4. Active users from user service
+        // 4. Active users and total users from user service
         long activeUsers = 0;
+        long totalUsers = 0;
         try {
-            ApiResponse<Map<String, Object>> userStats = userServiceClient.getUserStats();
-            if (userStats.isSuccess() && userStats.getData() != null) {
-                Object count = userStats.getData().get("activeUsers");
-                activeUsers = count != null ? ((Number) count).longValue() : 0;
+            Long activeUsersCount = userServiceClient.getActiveUsersCount();
+            if (activeUsersCount != null) {
+                activeUsers = activeUsersCount;
+            }
+            
+            ApiResponse<Object> usersResponse = userServiceClient.getAllUsers();
+            if (usersResponse.isSuccess() && usersResponse.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.List<java.util.Map<String, Object>> users = (java.util.List<java.util.Map<String, Object>>) usersResponse.getData();
+                totalUsers = users.size();
             }
         } catch (Exception e) {
-            log.error("Failed to fetch user stats: {}", e.getMessage());
+            log.error("Failed to fetch users: {}", e.getMessage());
         }
 
         stats.put("totalOrders", totalOrders);
         stats.put("totalRevenue", totalRevenue);
         stats.put("totalProducts", totalProducts);
         stats.put("activeUsers", activeUsers);
+        stats.put("totalUsers", totalUsers);
 
         return stats;
     }
@@ -363,8 +386,9 @@ public class OrderService {
         dto.setOrderNumber(order.getOrderNumber());
         dto.setStatus(order.getStatus());
         dto.setTotalAmount(order.getTotalAmount());
-        dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setPaymentStatus(mapPaymentStatusForFrontend(order.getPaymentStatus()));
         dto.setPaymentMethod(order.getPaymentMethod());
+        dto.setDeliveryAgentId(order.getDeliveryAgentId());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
         
@@ -413,6 +437,19 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
         try {
+            // Handle PAYMENT_SUCCESS status
+            if ("PAYMENT_SUCCESS".equalsIgnoreCase(status)) {
+                order.setStatus(Order.OrderStatus.PAYMENT_SUCCESS);
+                order.setPaymentStatus(Order.PaymentStatus.COMPLETED);
+                orderRepository.save(order);
+                log.info("Order marked as PAYMENT_SUCCESS for order {}", orderId);
+                
+                // Send order confirmation notification
+                sendOrderNotification(orderId, order.getUserId(), "CONFIRMED");
+                return;
+            }
+            
+            // Handle other payment statuses
             Order.PaymentStatus paymentStatus = Order.PaymentStatus.valueOf(status.toUpperCase());
             order.setPaymentStatus(paymentStatus);
 
@@ -436,5 +473,38 @@ public class OrderService {
             log.error("Failed to send notification for order: {}, event: {}. Error: {}",
                     orderId, eventType, e.getMessage());
         }
+    }
+
+    private String mapPaymentStatusForFrontend(Order.PaymentStatus paymentStatus) {
+        if (paymentStatus == null) {
+            return "PENDING";
+        }
+        return switch (paymentStatus) {
+            case COMPLETED -> "SUCCESS";
+            case PENDING -> "PENDING";
+            case FAILED -> "FAILED";
+            case REFUNDED -> "REFUNDED";
+            case COD -> "COD";
+        };
+    }
+    
+    public List<OrderDto> getOrdersByDeliveryAgent(Long agentId) {
+        return orderRepository.findByDeliveryAgentId(agentId).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    public List<OrderDto> getInTransitOrdersByAgent(Long agentId) {
+        return orderRepository.findByDeliveryAgentId(agentId).stream()
+                .filter(order -> order.getStatus() == Order.OrderStatus.OUT_FOR_DELIVERY)
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    public List<OrderDto> getPendingDeliveryOrders() {
+        return orderRepository.findAll().stream()
+                .filter(order -> order.getDeliveryAgentId() == null && order.getStatus() == Order.OrderStatus.PACKED)
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 }

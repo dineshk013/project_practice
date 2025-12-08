@@ -16,7 +16,17 @@ public class UserDto {
     private String name;
     private String phone;
     private User.Role role;
+    private Boolean active;
     private LocalDateTime createdAt;
+    
+    public UserDto(Long id, String email, String name, String phone, User.Role role, LocalDateTime createdAt) {
+        this.id = id;
+        this.email = email;
+        this.name = name;
+        this.phone = phone;
+        this.role = role;
+        this.createdAt = createdAt;
+    }
     
     @JsonProperty("role")
     public String getRoleAsString() {

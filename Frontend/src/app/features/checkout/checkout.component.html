@@ -136,6 +136,7 @@
         [orderId]="currentOrderId()"
         [amount]="currentOrderAmount()"
         [externalError]="paymentError()"
+        [paymentMethod]="formData().paymentMethod"
         (paymentSubmitted)="onPaymentSubmitted($event)"
         (modalClosed)="onPaymentModalClosed()">
     </app-payment-form-modal>

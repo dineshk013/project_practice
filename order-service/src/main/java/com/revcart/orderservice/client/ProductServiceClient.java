@@ -17,6 +17,6 @@ public interface ProductServiceClient {
     @PutMapping("/api/products/stock/release")
     ApiResponse<Void> releaseStock(@RequestBody StockReservationRequest request);
     
-    @GetMapping("/api/admin/products/stats")
-    ApiResponse<Map<String, Object>> getProductStats();
+    @GetMapping("/api/products")
+    ApiResponse<Object> getAllProducts();
 }

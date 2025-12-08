@@ -75,7 +75,7 @@ interface PagedResponse<T> {
                   </td>
                   <td class="px-6 py-4">{{ formatDate(order.createdAt) }}</td>
                   <td class="px-6 py-4">{{ order.items ? order.items.length : 0 }} items</td>
-                  <td class="px-6 py-4 font-medium">₹{{ order.totalAmount ? order.totalAmount.toFixed(2) : '0.00' }}</td>
+                  <td class="px-6 py-4 font-medium">₹{{ order.totalAmount.toFixed(2) }}</td>
                   <td class="px-6 py-4">
                     <select
                       [value]="order.status"
@@ -114,27 +114,6 @@ interface PagedResponse<T> {
             </tbody>
           </table>
         </div>
-
-        <!-- Pagination -->
-        @if (totalPages > 1) {
-          <div class="mt-4 flex justify-center gap-2">
-            <button
-              (click)="loadPage(currentPage - 1)"
-              [disabled]="currentPage === 0"
-              class="px-4 py-2 border rounded disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span class="px-4 py-2">{{ currentPage + 1 }} / {{ totalPages }}</span>
-            <button
-              (click)="loadPage(currentPage + 1)"
-              [disabled]="currentPage >= totalPages - 1"
-              class="px-4 py-2 border rounded disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        }
 
         <!-- Order Detail Modal -->
         @if (selectedOrder) {
@@ -225,52 +204,40 @@ export class AdminOrdersComponent implements OnInit {
           });
 
           this.totalPages = response.totalPages || 1;
-
-          if (this.orders.length === 0) {
-            console.log('No orders found');
-          }
         },
         error: (err) => {
           console.error('Failed to load orders:', err);
           this.orders = [];
           this.totalPages = 1;
-          if (err.status === 403) {
-            alert('Access denied. Please ensure you are logged in as an administrator.');
-          } else if (err.status === 401) {
-            alert('Authentication required. Please log in again.');
-          } else {
-            alert('Failed to load orders. Please try again.');
-          }
         }
       });
+  }
+
+  viewOrder(order: OrderDto): void {
+    this.http.get<OrderDto>(`${environment.apiUrl}/admin/orders/${order.id}`).subscribe({
+      next: (fullOrder) => {
+        this.selectedOrder = fullOrder;
+      },
+      error: () => {
+        this.selectedOrder = order;
+      }
+    });
   }
 
   updateStatus(orderId: number, event: Event): void {
     const select = event.target as HTMLSelectElement;
     const newStatus = select.value;
 
-    // Always send status in uppercase to match backend enum
     this.http.post<any>(`${environment.apiUrl}/admin/orders/${orderId}/status`, {
       status: newStatus.toUpperCase()
     }).subscribe({
       next: () => {
         this.loadOrders();
+        window.dispatchEvent(new Event('orderUpdated'));
       },
       error: (err) => {
         console.error('Status update failed:', err);
-        alert('Failed to update order status');
         this.loadOrders();
-      }
-    });
-  }
-
-  viewOrder(order: OrderDto): void {
-    this.http.get<OrderDto>(`${environment.apiUrl}/orders/${order.id}`).subscribe({
-      next: (fullOrder) => {
-        this.selectedOrder = fullOrder;
-      },
-      error: () => {
-        this.selectedOrder = order;
       }
     });
   }
@@ -309,4 +276,3 @@ export class AdminOrdersComponent implements OnInit {
     this.loadOrders();
   }
 }
-

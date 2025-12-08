@@ -28,6 +28,26 @@ public class DeliveryController {
         
         return ResponseEntity.ok(ApiResponse.success(orders, "Delivery orders retrieved"));
     }
+    
+    @GetMapping("/orders/assigned")
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getAssignedOrders(
+            @RequestHeader("X-User-Id") Long userId) {
+        List<OrderDto> orders = orderService.getOrdersByDeliveryAgent(userId);
+        return ResponseEntity.ok(ApiResponse.success(orders, "Assigned orders retrieved"));
+    }
+    
+    @GetMapping("/orders/in-transit")
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getInTransitOrders(
+            @RequestHeader("X-User-Id") Long userId) {
+        List<OrderDto> orders = orderService.getInTransitOrdersByAgent(userId);
+        return ResponseEntity.ok(ApiResponse.success(orders, "In-transit orders retrieved"));
+    }
+    
+    @GetMapping("/orders/pending")
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getPendingOrders() {
+        List<OrderDto> orders = orderService.getPendingDeliveryOrders();
+        return ResponseEntity.ok(ApiResponse.success(orders, "Pending orders retrieved"));
+    }
 
     @PostMapping("/orders/{orderId}/status")
     public ResponseEntity<ApiResponse<OrderDto>> updateDeliveryStatus(
