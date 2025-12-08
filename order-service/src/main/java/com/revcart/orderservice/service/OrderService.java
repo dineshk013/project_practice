@@ -362,20 +362,27 @@ public class OrderService {
         return dto;
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void updatePaymentStatus(Long orderId, String status) {
+        log.info("Updating payment status for order {}: {}", orderId, status);
+        
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        Order.PaymentStatus paymentStatus = Order.PaymentStatus.valueOf(status.toUpperCase());
-        order.setPaymentStatus(paymentStatus);
+        try {
+            Order.PaymentStatus paymentStatus = Order.PaymentStatus.valueOf(status.toUpperCase());
+            order.setPaymentStatus(paymentStatus);
 
-        if (paymentStatus == Order.PaymentStatus.COMPLETED) {
-            order.setStatus(Order.OrderStatus.CONFIRMED);
+            if (paymentStatus == Order.PaymentStatus.COMPLETED) {
+                order.setStatus(Order.OrderStatus.CONFIRMED);
+            }
+
+            orderRepository.save(order);
+            log.info("Payment status updated successfully for order {}: {}", orderId, status);
+        } catch (Exception e) {
+            log.error("Failed to update payment status for order {}: {}", orderId, e.getMessage(), e);
+            throw new RuntimeException("Failed to update payment status: " + e.getMessage(), e);
         }
-
-        orderRepository.save(order);
-        log.info("Payment status updated for order {}: {}", orderId, status);
     }
 
     private void sendOrderNotification(Long orderId, Long userId, String eventType) {
