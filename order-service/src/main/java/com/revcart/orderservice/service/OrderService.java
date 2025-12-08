@@ -15,9 +15,13 @@ import com.revcart.orderservice.exception.ResourceNotFoundException;
 import com.revcart.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -278,6 +282,25 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public Page<OrderDto> getAllOrdersPaged(Pageable pageable) {
+        return orderRepository.findAll(pageable).map(this::toDto);
+    }
+
+    public Map<String, Object> getDashboardStats() {
+        Map<String, Object> stats = new HashMap<>();
+        long totalOrders = orderRepository.count();
+        double totalRevenue = orderRepository.findAll().stream()
+                .mapToDouble(Order::getTotalAmount)
+                .sum();
+        
+        stats.put("totalOrders", totalOrders);
+        stats.put("totalRevenue", totalRevenue);
+        stats.put("totalProducts", 0); // Will be fetched from product service
+        stats.put("totalUsers", 0); // Will be fetched from user service
+        
+        return stats;
+    }
+
     private OrderDto toDto(Order order) {
         OrderDto dto = new OrderDto();
         dto.setId(order.getId());
@@ -288,6 +311,7 @@ public class OrderService {
         dto.setPaymentStatus(order.getPaymentStatus());
         dto.setPaymentMethod(order.getPaymentMethod());
         dto.setCreatedAt(order.getCreatedAt());
+        dto.setUpdatedAt(order.getUpdatedAt());
 
         if (order.getDeliveryAddress() != null) {
             AddressDto addressDto = new AddressDto();
@@ -311,6 +335,22 @@ public class OrderService {
                 .collect(Collectors.toList()));
 
         return dto;
+    }
+
+    @Transactional
+    public void updatePaymentStatus(Long orderId, String status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        
+        Order.PaymentStatus paymentStatus = Order.PaymentStatus.valueOf(status.toUpperCase());
+        order.setPaymentStatus(paymentStatus);
+        
+        if (paymentStatus == Order.PaymentStatus.COMPLETED) {
+            order.setStatus(Order.OrderStatus.CONFIRMED);
+        }
+        
+        orderRepository.save(order);
+        log.info("Payment status updated for order {}: {}", orderId, status);
     }
 
     private void sendOrderNotification(Long orderId, Long userId, String eventType) {

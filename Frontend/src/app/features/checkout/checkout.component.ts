@@ -65,14 +65,7 @@ export class CheckoutComponent implements OnInit {
     currentOrderId = signal<number | null>(null);
     currentOrderAmount = signal<number | null>(null);
     paymentError = signal<string | null>(null);
-
-    // Card details
-    cardDetails = signal({
-        cardNumber: '',
-        expiryDate: '',
-        cvv: '',
-        cardholderName: ''
-    });
+    isSubmitting = signal(false);
 
     ngOnInit(): void {
         this.fetchSavedAddresses();
@@ -150,6 +143,10 @@ export class CheckoutComponent implements OnInit {
     }
 
     onSubmit(): void {
+        if (this.isSubmitting()) {
+            return; // Prevent duplicate submissions
+        }
+
         if (this.cartService.items().length === 0) {
             this.errorMessage.set('Your cart is empty');
             return;
@@ -172,6 +169,7 @@ export class CheckoutComponent implements OnInit {
         }
 
         this.isLoading.set(true);
+        this.isSubmitting.set(true);
         this.errorMessage.set('');
 
         if (this.selectedAddressId === 'new') {
@@ -201,11 +199,13 @@ export class CheckoutComponent implements OnInit {
                         this.placeOrder(response.data.id);
                     } else {
                         this.isLoading.set(false);
+                        this.isSubmitting.set(false);
                         this.errorMessage.set('Failed to save address. Please try again.');
                     }
                 },
                 error: (err) => {
                     this.isLoading.set(false);
+                    this.isSubmitting.set(false);
                     this.errorMessage.set(err.error?.message || 'Failed to save address. Please try again.');
                     console.error('Address creation failed:', err);
                 }
@@ -253,12 +253,14 @@ export class CheckoutComponent implements OnInit {
                         this.showPaymentModal.set(true);
                     } else {
                         this.isLoading.set(false);
+                        this.isSubmitting.set(false);
                         this.cartService.clearCart();
                         this.router.navigate(['/orders']);
                     }
                 },
                 error: (err) => {
                     this.isLoading.set(false);
+                    this.isSubmitting.set(false);
                     console.error('Order creation failed:', err);
                     this.errorMessage.set(err.error?.message || 'Failed to place order. Please try again.');
                 }
@@ -268,29 +270,36 @@ export class CheckoutComponent implements OnInit {
     onPaymentSubmitted(cardDetails: CardDetails): void {
         const orderId = this.currentOrderId();
         const amount = this.currentOrderAmount();
+        const user = this.authService.user();
 
         if (!orderId || !amount) {
             this.paymentError.set('Order information is missing. Please try again.');
             return;
         }
 
+        if (!user || !user.id) {
+            this.paymentError.set('User not authenticated. Please login again.');
+            return;
+        }
+
         this.paymentError.set(null);
 
-        this.paymentService.processDummyPayment(orderId, amount)
+        this.paymentService.processDummyPayment(orderId, user.id, amount, 'RAZORPAY')
             .subscribe({
                 next: (response) => {
-                    if (response.success && response.data) {
+                    if (response.success && response.data?.status === 'SUCCESS') {
                         // Clear cart and close modal
                         this.cartService.clearCart();
                         this.showPaymentModal.set(false);
                         this.paymentError.set(null);
                         this.currentOrderId.set(null);
                         this.currentOrderAmount.set(null);
+                        this.isSubmitting.set(false);
                         
-                        // Redirect to My Orders instead of payment success
+                        // Redirect to My Orders
                         this.router.navigate(['/orders']);
                     } else {
-                        this.paymentError.set(response.message || 'Payment failed');
+                        this.paymentError.set(response.data?.message || response.message || 'Payment failed');
                     }
                 },
                 error: (error) => {
@@ -305,5 +314,6 @@ export class CheckoutComponent implements OnInit {
         this.currentOrderId.set(null);
         this.currentOrderAmount.set(null);
         this.paymentError.set(null);
+        this.isSubmitting.set(false);
     }
 }

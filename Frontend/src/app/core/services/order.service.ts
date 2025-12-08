@@ -49,8 +49,12 @@ export class OrderService {
 
   private mapBackendOrderToFrontend = (backendOrder: BackendOrderDto): Order => {
     const statusMap: { [key: string]: 'processing' | 'in_transit' | 'delivered' | 'cancelled' } = {
+      'PENDING': 'processing',
+      'CONFIRMED': 'processing',
       'PLACED': 'processing',
       'PACKED': 'processing',
+      'PROCESSING': 'processing',
+      'SHIPPED': 'in_transit',
       'OUT_FOR_DELIVERY': 'in_transit',
       'DELIVERED': 'delivered',
       'CANCELLED': 'cancelled'

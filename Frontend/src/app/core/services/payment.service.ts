@@ -9,14 +9,16 @@ interface ApiResponse<T> {
   data: T;
 }
 
-interface PaymentRequest {
+interface DummyPaymentRequest {
   orderId: number;
+  userId: number;
   amount: number;
+  paymentMethod: string;
 }
 
 interface PaymentResponse {
   status: string;
-  paymentId: string;
+  paymentId?: string;
   message: string;
 }
 
@@ -29,15 +31,19 @@ export class PaymentService {
   constructor(private httpClient: HttpClient) { }
 
   /**
-   * Process dummy Razorpay payment
+   * Process dummy payment
    * @param orderId - The order ID
+   * @param userId - The user ID
    * @param amount - The payment amount
+   * @param paymentMethod - The payment method
    * @returns Observable with payment response
    */
-  processDummyPayment(orderId: number, amount: number): Observable<ApiResponse<PaymentResponse>> {
-    const request: PaymentRequest = {
+  processDummyPayment(orderId: number, userId: number, amount: number, paymentMethod: string): Observable<ApiResponse<PaymentResponse>> {
+    const request: DummyPaymentRequest = {
       orderId,
-      amount
+      userId,
+      amount,
+      paymentMethod
     };
 
     console.log('Processing payment:', request);

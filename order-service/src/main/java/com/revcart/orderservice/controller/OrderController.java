@@ -34,6 +34,12 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "Orders retrieved successfully"));
     }
 
+    @GetMapping("/user")
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getUserOrdersAlt(@RequestHeader("X-User-Id") Long userId) {
+        List<OrderDto> orders = orderService.getUserOrders(userId);
+        return ResponseEntity.ok(ApiResponse.success(orders, "Orders retrieved successfully"));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<OrderDto>> getOrderById(@PathVariable Long id) {
         OrderDto order = orderService.getOrderById(id);
@@ -63,8 +69,16 @@ public class OrderController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<OrderDto>> getAllOrders() {
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getAllOrders() {
         List<OrderDto> orders = orderService.getAllOrders();
-        return ResponseEntity.ok(orders);
+        return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
+    }
+
+    @PutMapping("/{id}/payment-status")
+    public ResponseEntity<ApiResponse<Void>> updatePaymentStatus(
+            @PathVariable Long id,
+            @RequestParam String status) {
+        orderService.updatePaymentStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success(null, "Payment status updated"));
     }
 }

@@ -3,9 +3,7 @@ package com.revcart.paymentservice.service;
 import com.revcart.paymentservice.client.NotificationServiceClient;
 import com.revcart.paymentservice.client.OrderServiceClient;
 import com.revcart.paymentservice.client.UserServiceClient;
-import com.revcart.paymentservice.dto.PaymentDto;
-import com.revcart.paymentservice.dto.PaymentInitiateRequest;
-import com.revcart.paymentservice.dto.PaymentVerifyRequest;
+import com.revcart.paymentservice.dto.*;
 import com.revcart.paymentservice.entity.Payment;
 import com.revcart.paymentservice.exception.BadRequestException;
 import com.revcart.paymentservice.exception.ResourceNotFoundException;
@@ -159,6 +157,54 @@ public class PaymentService {
         dto.setFailureReason(payment.getFailureReason());
         dto.setCreatedAt(payment.getCreatedAt());
         return dto;
+    }
+
+    @Transactional
+    public DummyPaymentResponse processDummyPayment(DummyPaymentRequest request) {
+        log.info("Processing dummy payment for orderId: {}, userId: {}, amount: {}", 
+                request.getOrderId(), request.getUserId(), request.getAmount());
+
+        try {
+            // Create payment record without checking order existence
+            Payment payment = new Payment();
+            payment.setOrderId(request.getOrderId());
+            payment.setUserId(request.getUserId());
+            payment.setAmount(request.getAmount());
+            payment.setPaymentMethod(request.getPaymentMethod());
+            payment.setStatus(Payment.PaymentStatus.SUCCESS);
+            payment.setTransactionId("TXN-" + UUID.randomUUID().toString());
+
+            Payment saved = paymentRepository.save(payment);
+            log.info("Dummy payment successful: {} for order: {}", saved.getId(), request.getOrderId());
+
+            // Notify order service about payment success
+            try {
+                ApiResponse<Object> response = orderServiceClient.updatePaymentStatus(request.getOrderId(), "COMPLETED");
+                if (response.isSuccess()) {
+                    log.info("✅ Order payment status updated successfully for order: {}", request.getOrderId());
+                } else {
+                    log.warn("⚠️ Order payment status update returned failure: {}", response.getMessage());
+                }
+            } catch (Exception e) {
+                log.error("❌ Failed to update order payment status for order: {}, error: {}", request.getOrderId(), e.getMessage());
+            }
+
+            // Send notification
+            sendPaymentNotification(saved.getId(), request.getUserId(), request.getOrderId(), "SUCCESS", null);
+
+            return new DummyPaymentResponse(
+                    "SUCCESS",
+                    saved.getTransactionId(),
+                    "Payment processed successfully"
+            );
+        } catch (Exception e) {
+            log.error("Dummy payment failed for order: {}, error: {}", request.getOrderId(), e.getMessage());
+            return new DummyPaymentResponse(
+                    "FAILED",
+                    null,
+                    "Payment processing failed: " + e.getMessage()
+            );
+        }
     }
 
     private void sendPaymentNotification(Long paymentId, Long userId, Long orderId, String status, String reason) {

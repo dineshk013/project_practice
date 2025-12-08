@@ -1,5 +1,6 @@
 package com.revcart.orderservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.revcart.orderservice.entity.Order;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +19,16 @@ public class OrderDto {
     private Double totalAmount;
     private Order.PaymentStatus paymentStatus;
     private String paymentMethod;
+    
+    @JsonProperty("deliveryAddress")
     private AddressDto deliveryAddress;
+    
+    @JsonProperty("shippingAddress")
+    public AddressDto getShippingAddress() {
+        return deliveryAddress;
+    }
+    
     private List<OrderItemDto> items;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

@@ -13,6 +13,6 @@ public interface OrderServiceClient {
     @GetMapping("/api/orders/{id}")
     ApiResponse<Object> getOrderById(@PathVariable Long id);
     
-    @PutMapping("/api/orders/{id}/payment-status")
-    ApiResponse<Void> updatePaymentStatus(@PathVariable Long id, @RequestParam String status);
+    @PutMapping("/api/orders/{orderId}/payment-status")
+    ApiResponse<Object> updatePaymentStatus(@PathVariable("orderId") Long orderId, @RequestParam("status") String status);
 }

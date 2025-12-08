@@ -1,0 +1,14 @@
+package com.revcart.paymentservice.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DummyPaymentResponse {
+    private String status;
+    private String paymentId;
+    private String message;
+}

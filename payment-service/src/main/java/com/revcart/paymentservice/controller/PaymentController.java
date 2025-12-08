@@ -1,9 +1,6 @@
 package com.revcart.paymentservice.controller;
 
-import com.revcart.paymentservice.dto.ApiResponse;
-import com.revcart.paymentservice.dto.PaymentDto;
-import com.revcart.paymentservice.dto.PaymentInitiateRequest;
-import com.revcart.paymentservice.dto.PaymentVerifyRequest;
+import com.revcart.paymentservice.dto.*;
 import com.revcart.paymentservice.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,5 +45,11 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<PaymentDto>> getPaymentByOrderId(@PathVariable Long orderId) {
         PaymentDto payment = paymentService.getPaymentByOrderId(orderId);
         return ResponseEntity.ok(ApiResponse.success(payment, "Payment retrieved successfully"));
+    }
+
+    @PostMapping("/dummy")
+    public ResponseEntity<ApiResponse<DummyPaymentResponse>> processDummyPayment(@Valid @RequestBody DummyPaymentRequest request) {
+        DummyPaymentResponse response = paymentService.processDummyPayment(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Payment processed successfully"));
     }
 }
