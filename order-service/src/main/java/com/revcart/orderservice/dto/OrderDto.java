@@ -14,6 +14,7 @@ import java.util.List;
 public class OrderDto {
     private Long id;
     private Long userId;
+    private String customerName;
     private String orderNumber;
     private Order.OrderStatus status;
     private Double totalAmount;

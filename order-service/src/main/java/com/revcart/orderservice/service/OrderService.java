@@ -367,6 +367,19 @@ public class OrderService {
         dto.setPaymentMethod(order.getPaymentMethod());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
+        
+        // Fetch customer name
+        try {
+            ApiResponse<Object> userResponse = userServiceClient.getUserById(order.getUserId());
+            if (userResponse.isSuccess() && userResponse.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userData = (java.util.Map<String, Object>) userResponse.getData();
+                dto.setCustomerName((String) userData.get("name"));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch customer name for order {}: {}", order.getId(), e.getMessage());
+            dto.setCustomerName("N/A");
+        }
 
         if (order.getDeliveryAddress() != null) {
             AddressDto addressDto = new AddressDto();
