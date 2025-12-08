@@ -27,17 +27,17 @@ public class AdminOrderController {
     public ResponseEntity<Map<String, Object>> getAdminOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<OrderDto> orderPage = orderService.getAllOrdersPaged(pageable);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("content", orderPage.getContent());
         response.put("page", orderPage.getNumber());
         response.put("size", orderPage.getSize());
         response.put("totalElements", orderPage.getTotalElements());
         response.put("totalPages", orderPage.getTotalPages());
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -45,43 +45,60 @@ public class AdminOrderController {
     public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(
             @PathVariable Long orderId,
             @RequestParam(required = false) String status,
+            @RequestParam(name = "newStatus", required = false) String newStatus,
+            @RequestParam(name = "orderStatus", required = false) String orderStatusParam,
             @RequestBody(required = false) StatusUpdateRequest request) {
-        
-        // Accept both query param and request body
-        String statusStr = status != null ? status : 
-                          (request != null ? request.getStatus() : null);
-        
-        if (statusStr == null || statusStr.isEmpty()) {
+
+        // 1. Gather status from all possible places
+        String statusStr = null;
+
+        if (status != null && !status.isBlank()) {
+            statusStr = status;
+        } else if (newStatus != null && !newStatus.isBlank()) {
+            statusStr = newStatus;
+        } else if (orderStatusParam != null && !orderStatusParam.isBlank()) {
+            statusStr = orderStatusParam;
+        } else if (request != null) {
+            statusStr = request.resolveStatus();
+        }
+
+        if (statusStr == null || statusStr.isBlank()) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Status is required"));
         }
-        
-        // Normalize to uppercase and handle UI labels
-        statusStr = statusStr.toUpperCase().trim();
-        
-        // Map UI labels to enum values
+
+        // 2. Normalize
+        statusStr = statusStr.trim().toUpperCase();
+
+        // 3. Map UI labels → enum values
         statusStr = switch (statusStr) {
-            case "PROCESSING" -> "PROCESSING";
-            case "SHIPPED" -> "SHIPPED";
-            case "DELIVERED" -> "DELIVERED";
-            case "COMPLETED" -> "COMPLETED";
-            case "CANCELLED" -> "CANCELLED";
-            case "PENDING" -> "PENDING";
+            case "PROCESSING" -> "PACKED";              // UI: processing -> Backend: PACKED
+            case "PACKED" -> "OUT_FOR_DELIVERY";       // UI: packed -> Backend: OUT_FOR_DELIVERY
+            case "IN_TRANSIT", "IN TRANSIT" -> "DELIVERED";  // UI: in_transit -> Backend: DELIVERED
+            case "DELIVERED" -> "COMPLETED";           // UI: delivered -> Backend: COMPLETED
+            case "CANCELLED", "CANCELED" -> "CANCELLED";
+            case "PENDING", "PLACED" -> "PENDING";
             case "CONFIRMED" -> "CONFIRMED";
+            case "OUT_FOR_DELIVERY", "OUT FOR DELIVERY" -> "OUT_FOR_DELIVERY";
+            case "COMPLETED" -> "COMPLETED";
+            case "SHIPPED" -> "OUT_FOR_DELIVERY";      // Legacy support
             default -> statusStr;
         };
-        
-        Order.OrderStatus orderStatus;
+
+        // 4. Convert to enum
+        Order.OrderStatus orderStatusEnum;
         try {
-            orderStatus = Order.OrderStatus.valueOf(statusStr);
+            orderStatusEnum = Order.OrderStatus.valueOf(statusStr);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Invalid status: " + statusStr));
         }
-        
-        OrderDto order = orderService.updateOrderStatus(orderId, orderStatus);
+
+        // 5. Update
+        OrderDto order = orderService.updateOrderStatus(orderId, orderStatusEnum);
         return ResponseEntity.ok(ApiResponse.success(order, "Order status updated"));
     }
+
 
     @GetMapping("/dashboard/stats")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {

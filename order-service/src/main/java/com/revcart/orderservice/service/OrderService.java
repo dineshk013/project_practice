@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +38,14 @@ public class OrderService {
     private final DeliveryServiceClient deliveryServiceClient;
     private final NotificationServiceClient notificationServiceClient;
 
-    @Transactional
+    /**
+     * NOTE: No @Transactional here so that the saved order is committed
+     * before external services (payment/delivery) call back into this service.
+     */
     public OrderDto checkout(Long userId, CheckoutRequest request) {
-        log.info("=== CHECKOUT START === userId: {}, addressId: {}, paymentMethod: {}", 
+        log.info("=== CHECKOUT START === userId: {}, addressId: {}, paymentMethod: {}",
                 userId, request.getAddressId(), request.getPaymentMethod());
-        
+
         // 1. Validate userId header
         if (userId == null) {
             log.error("UserId is null in checkout request");
@@ -82,7 +86,7 @@ public class OrderService {
                 .orElseThrow(() -> new BadRequestException("Address not found"));
         log.info("Address found: {}, {}", address.getCity(), address.getState());
 
-        // 5. Reserve stock (non-blocking - log failure but continue)
+        // 5. Reserve stock (non-blocking)
         try {
             StockReservationRequest stockRequest = new StockReservationRequest();
             stockRequest.setReservationId("ORD-" + System.currentTimeMillis());
@@ -129,7 +133,7 @@ public class OrderService {
         log.info("Saving order to database...");
         Order saved = orderRepository.save(order);
         log.info("=== ORDER SAVED === ID: {}, OrderNumber: {}", saved.getId(), saved.getOrderNumber());
-        
+
         // Verify save
         boolean exists = orderRepository.existsById(saved.getId());
         log.info("Order exists in DB after save: {}", exists);
@@ -137,20 +141,20 @@ public class OrderService {
             log.error("ORDER NOT FOUND IN DB AFTER SAVE! This should never happen.");
         }
 
-        // 8. Update payment status for COD (separate transaction)
+        // 8. Update payment status for COD
         if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
             saved.setPaymentStatus(Order.PaymentStatus.COD);
             orderRepository.save(saved);
             log.info("COD payment status updated for order: {}", saved.getOrderNumber());
         }
 
-        // 9-12. Post-order operations (all non-blocking)
+        // 9-12. Post-order operations (non-blocking, external services)
         performPostOrderOperations(saved, userId, request.getPaymentMethod());
 
         log.info("=== CHECKOUT COMPLETE === OrderID: {}, OrderNumber: {}", saved.getId(), saved.getOrderNumber());
         return toDto(saved);
     }
-    
+
     private void performPostOrderOperations(Order order, Long userId, String paymentMethod) {
         boolean paymentSuccess = true;
         boolean deliverySuccess = true;
@@ -196,12 +200,23 @@ public class OrderService {
             log.error("Notification failed for order: {}, error: {}", order.getId(), e.getMessage());
         }
 
-        // Clear cart ONLY after all operations complete (success or failure)
+        // Clear cart
         try {
             cartServiceClient.clearCart(userId);
             log.info("✅ Cart cleared for userId: {} after order completion", userId);
         } catch (Exception e) {
             log.warn("⚠️ Failed to clear cart for userId: {}, error: {}", userId, e.getMessage());
+        }
+
+        // Flags currently only logged; you can add extra handling if needed
+        if (!paymentSuccess) {
+            log.warn("Payment may have failed for order: {}", order.getId());
+        }
+        if (!deliverySuccess) {
+            log.warn("Delivery assignment may have failed for order: {}", order.getId());
+        }
+        if (!notificationSuccess) {
+            log.warn("Notification may have failed for order: {}", order.getId());
         }
     }
 
@@ -221,18 +236,18 @@ public class OrderService {
     public OrderDto updateOrderStatus(Long id, Order.OrderStatus status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        
+
         order.setStatus(status);
         Order updated = orderRepository.save(order);
         log.info("Order status updated: {} -> {}", id, status);
-        
+
         // Send notification for status changes
         if (status == Order.OrderStatus.SHIPPED) {
             sendOrderNotification(id, order.getUserId(), "SHIPPED");
         } else if (status == Order.OrderStatus.DELIVERED) {
             sendOrderNotification(id, order.getUserId(), "DELIVERED");
         }
-        
+
         return toDto(updated);
     }
 
@@ -245,8 +260,8 @@ public class OrderService {
             throw new BadRequestException("Unauthorized to cancel this order");
         }
 
-        if (order.getStatus() == Order.OrderStatus.DELIVERED || 
-            order.getStatus() == Order.OrderStatus.CANCELLED) {
+        if (order.getStatus() == Order.OrderStatus.DELIVERED ||
+                order.getStatus() == Order.OrderStatus.CANCELLED) {
             throw new BadRequestException("Cannot cancel order in current status");
         }
 
@@ -265,10 +280,10 @@ public class OrderService {
 
         order.setStatus(Order.OrderStatus.CANCELLED);
         orderRepository.save(order);
-        
+
         // Send order cancelled notification
         sendOrderNotification(id, userId, "CANCELLED");
-        
+
         log.info("Order cancelled: {}", id);
     }
 
@@ -292,12 +307,12 @@ public class OrderService {
         double totalRevenue = orderRepository.findAll().stream()
                 .mapToDouble(Order::getTotalAmount)
                 .sum();
-        
+
         stats.put("totalOrders", totalOrders);
         stats.put("totalRevenue", totalRevenue);
-        stats.put("totalProducts", 0); // Will be fetched from product service
-        stats.put("totalUsers", 0); // Will be fetched from user service
-        
+        stats.put("totalProducts", 0); // TODO: fetch from product service
+        stats.put("totalUsers", 0);    // TODO: fetch from user service
+
         return stats;
     }
 
@@ -341,14 +356,14 @@ public class OrderService {
     public void updatePaymentStatus(Long orderId, String status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        
+
         Order.PaymentStatus paymentStatus = Order.PaymentStatus.valueOf(status.toUpperCase());
         order.setPaymentStatus(paymentStatus);
-        
+
         if (paymentStatus == Order.PaymentStatus.COMPLETED) {
             order.setStatus(Order.OrderStatus.CONFIRMED);
         }
-        
+
         orderRepository.save(order);
         log.info("Payment status updated for order {}: {}", orderId, status);
     }
@@ -358,7 +373,7 @@ public class OrderService {
             notificationServiceClient.notifyOrder(orderId, userId, eventType);
             log.info("Notification sent for order: {}, event: {}", orderId, eventType);
         } catch (Exception e) {
-            log.error("Failed to send notification for order: {}, event: {}. Error: {}", 
+            log.error("Failed to send notification for order: {}, event: {}. Error: {}",
                     orderId, eventType, e.getMessage());
         }
     }

@@ -48,36 +48,35 @@ export class OrderService {
   constructor(private httpClient: HttpClient) { }
 
   private mapBackendOrderToFrontend = (backendOrder: BackendOrderDto): Order => {
-    const statusMap: { [key: string]: 'processing' | 'in_transit' | 'delivered' | 'cancelled' } = {
-      'PENDING': 'processing',
-      'CONFIRMED': 'processing',
-      'PLACED': 'processing',
-      'PACKED': 'processing',
-      'PROCESSING': 'processing',
-      'SHIPPED': 'in_transit',
-      'OUT_FOR_DELIVERY': 'in_transit',
-      'DELIVERED': 'delivered',
-      'CANCELLED': 'cancelled'
-    };
-
-    const address = backendOrder.shippingAddress;
-    const street = address.line2 ? `${address.line1}, ${address.line2}` : address.line1;
-    const deliveryAddress = `${street}, ${address.city}, ${address.state} ${address.postalCode}`;
-
-    return {
-      id: String(backendOrder.id),
-      date: new Date(backendOrder.createdAt).toISOString().split('T')[0],
-      status: statusMap[backendOrder.status] || 'processing',
-      items: backendOrder.items.map(item => ({
-        id: String(item.productId),
-        name: item.productName,
-        quantity: item.quantity,
-        price: Number(item.unitPrice)
-      })),
-      total: Number(backendOrder.totalAmount),
-      deliveryAddress: deliveryAddress
-    };
+  const map: { [k: string]: OrderStatus } = {
+    'PENDING': 'processing',
+    'PROCESSING': 'processing',
+    'CONFIRMED': 'processing',
+    'PACKED': 'packed',
+    'OUT_FOR_DELIVERY': 'in_transit',
+    'SHIPPED': 'in_transit',
+    'DELIVERED': 'delivered',
+    'COMPLETED': 'delivered',
+    'CANCELLED': 'cancelled'
   };
+
+  return {
+    id: String(backendOrder.id),
+    date: new Date(backendOrder.createdAt).toISOString().split('T')[0],
+    status: map[backendOrder.status] ?? 'processing',
+    items: backendOrder.items.map(item => ({
+      id: String(item.productId),
+      name: item.productName,
+      quantity: item.quantity,
+      price: Number(item.unitPrice)
+    })),
+    total: Number(backendOrder.totalAmount),
+    deliveryAddress: backendOrder.shippingAddress ?
+      `${backendOrder.shippingAddress.line1}, ${backendOrder.shippingAddress.city}, ${backendOrder.shippingAddress.state} ${backendOrder.shippingAddress.postalCode}`
+      : '-'
+  };
+};
+
 
   getAllOrders(): Observable<Order[]> {
     const headers = {
@@ -144,8 +143,9 @@ export class OrderService {
 
     const statusMap: { [key: string]: string } = {
       'processing': 'PACKED',
-      'in_transit': 'OUT_FOR_DELIVERY',
-      'delivered': 'DELIVERED',
+      'packed': 'OUT_FOR_DELIVERY',
+      'in_transit': 'DELIVERED',
+      'delivered': 'COMPLETED',
       'cancelled': 'CANCELLED'
     };
 

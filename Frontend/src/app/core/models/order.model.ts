@@ -1,3 +1,10 @@
+export type OrderStatus =
+  | 'processing'
+  | 'packed'
+  | 'in_transit'
+  | 'delivered'
+  | 'cancelled';
+
 export interface OrderItem {
   id: string;
   name: string;
@@ -8,7 +15,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   date: string;
-  status: 'processing' | 'in_transit' | 'delivered' | 'cancelled';
+  status: OrderStatus;
   items: OrderItem[];
   total: number;
   deliveryAddress: string;

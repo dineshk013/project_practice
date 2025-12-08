@@ -65,7 +65,15 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+        PENDING,          // newly placed, awaiting processing
+        PROCESSING,       // being prepared
+        PACKED,           // packed and ready
+        OUT_FOR_DELIVERY, // out with delivery agent
+        SHIPPED,          // (optional alias; you can choose)
+        DELIVERED,
+        CANCELLED,
+        CONFIRMED,
+        COMPLETED
     }
 
     public enum PaymentStatus {

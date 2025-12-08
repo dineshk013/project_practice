@@ -41,7 +41,8 @@ export class OrdersComponent implements OnInit {
     loadOrders(): void {
         this.isLoading.set(true);
         this.errorMessage.set('');
-        this.orderService.getUserOrders('').subscribe({
+        const userId = localStorage.getItem('userId') || '';
+        this.orderService.getUserOrders(userId).subscribe({
             next: (orders) => {
                 this.orders.set(orders);
                 this.isLoading.set(false);
@@ -58,6 +59,7 @@ export class OrdersComponent implements OnInit {
     getStatusClass(status: Order['status']): string {
         const classes = {
             processing: 'bg-blue-100 text-blue-800',
+            packed: 'bg-purple-100 text-purple-800',
             in_transit: 'bg-yellow-100 text-yellow-800',
             delivered: 'bg-green-100 text-green-800',
             cancelled: 'bg-red-100 text-red-800'
@@ -68,6 +70,7 @@ export class OrdersComponent implements OnInit {
     getStatusIcon(status: Order['status']) {
         const icons = {
             processing: this.Package,
+            packed: this.Package,
             in_transit: this.Truck,
             delivered: this.CheckCircle,
             cancelled: this.XCircle
@@ -78,6 +81,7 @@ export class OrdersComponent implements OnInit {
     getStatusText(status: Order['status']): string {
         const texts = {
             processing: 'Processing',
+            packed: 'Packed',
             in_transit: 'In Transit',
             delivered: 'Delivered',
             cancelled: 'Cancelled'

@@ -45,8 +45,8 @@ public class DeliveryService {
 
         addTrackingLog(delivery, Delivery.DeliveryStatus.ASSIGNED, null, "Delivery agent assigned");
 
-        notifyOrderService(request.getOrderId(), "SHIPPED");
-        sendNotification(request.getOrderId(), request.getUserId(), "SHIPPED");
+        // DO NOT auto-update order status - admin/delivery agent will manually update
+        sendNotification(request.getOrderId(), request.getUserId(), "ASSIGNED");
 
         log.info("Delivery assigned: {} for order: {}", delivery.getId(), request.getOrderId());
         return DeliveryDto.fromEntity(delivery);
