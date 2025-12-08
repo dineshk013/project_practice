@@ -13,20 +13,20 @@ Your MongoDB databases were successfully reset:
 2. Connect to localhost
 3. Click "SQL" tab and paste:
 ```sql
-DROP DATABASE IF EXISTS user_service;
-CREATE DATABASE user_service;
+DROP DATABASE IF EXISTS revcart_users;
+CREATE DATABASE revcart_users;
 
-DROP DATABASE IF EXISTS product_service;
-CREATE DATABASE product_service;
+DROP DATABASE IF EXISTS revcart_products;
+CREATE DATABASE revcart_products;
 
-DROP DATABASE IF EXISTS cart_service;
-CREATE DATABASE cart_service;
+DROP DATABASE IF EXISTS revcart_cart;
+CREATE DATABASE revcart_cart;
 
-DROP DATABASE IF EXISTS order_service;
-CREATE DATABASE order_service;
+DROP DATABASE IF EXISTS revcart_orders;
+CREATE DATABASE revcart_orders;
 
-DROP DATABASE IF EXISTS payment_service;
-CREATE DATABASE payment_service;
+DROP DATABASE IF EXISTS revcart_payments;
+CREATE DATABASE revcart_payments;
 ```
 4. Click Execute (⚡ icon)
 
@@ -39,16 +39,16 @@ cd "C:\Program Files\MySQL\MySQL Server 8.0\bin"
 .\mysql.exe -uroot -proot
 
 # Then paste these commands:
-DROP DATABASE IF EXISTS user_service;
-CREATE DATABASE user_service;
-DROP DATABASE IF EXISTS product_service;
-CREATE DATABASE product_service;
-DROP DATABASE IF EXISTS cart_service;
-CREATE DATABASE cart_service;
-DROP DATABASE IF EXISTS order_service;
-CREATE DATABASE order_service;
-DROP DATABASE IF EXISTS payment_service;
-CREATE DATABASE payment_service;
+DROP DATABASE IF EXISTS revcart_users;
+CREATE DATABASE revcart_users;
+DROP DATABASE IF EXISTS revcart_products;
+CREATE DATABASE revcart_products;
+DROP DATABASE IF EXISTS revcart_cart;
+CREATE DATABASE revcart_cart;
+DROP DATABASE IF EXISTS revcart_orders;
+CREATE DATABASE revcart_orders;
+DROP DATABASE IF EXISTS revcart_payments;
+CREATE DATABASE revcart_payments;
 exit;
 ```
 
@@ -85,11 +85,11 @@ cd C:\Users\DINESH\Desktop\RevCartcopy\Revcart_Microservices
 ## ✅ What's Reset
 
 ### MySQL (Empty now)
-- ✓ user_service
-- ✓ product_service
-- ✓ cart_service
-- ✓ order_service
-- ✓ payment_service
+- ✓ revcart_users
+- ✓ revcart_products
+- ✓ revcart_cart
+- ✓ revcart_orders
+- ✓ revcart_payments
 
 ### MongoDB (Already reset)
 - ✓ notification_service

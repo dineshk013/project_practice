@@ -37,11 +37,11 @@ Write-Host "  STEP 1: Resetting MySQL Databases" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 $mysqlDatabases = @(
-    "user_service",
-    "product_service", 
-    "cart_service",
-    "order_service",
-    "payment_service"
+    "revcart_users",
+    "revcart_products", 
+    "revcart_cart",
+    "revcart_orders",
+    "revcart_payments"
 )
 
 foreach ($db in $mysqlDatabases) {

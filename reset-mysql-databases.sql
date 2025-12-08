@@ -2,24 +2,24 @@
 -- Execute this in MySQL Workbench or command line: mysql -uroot -proot < reset-mysql-databases.sql
 
 -- User Service Database
-DROP DATABASE IF EXISTS user_service;
-CREATE DATABASE user_service;
+DROP DATABASE IF EXISTS revcart_users;
+CREATE DATABASE revcart_users;
 
 -- Product Service Database
-DROP DATABASE IF EXISTS product_service;
-CREATE DATABASE product_service;
+DROP DATABASE IF EXISTS revcart_products;
+CREATE DATABASE revcart_products;
 
 -- Cart Service Database
-DROP DATABASE IF EXISTS cart_service;
-CREATE DATABASE cart_service;
+DROP DATABASE IF EXISTS revcart_cart;
+CREATE DATABASE revcart_cart;
 
 -- Order Service Database
-DROP DATABASE IF EXISTS order_service;
-CREATE DATABASE order_service;
+DROP DATABASE IF EXISTS revcart_orders;
+CREATE DATABASE revcart_orders;
 
 -- Payment Service Database
-DROP DATABASE IF EXISTS payment_service;
-CREATE DATABASE payment_service;
+DROP DATABASE IF EXISTS revcart_payments;
+CREATE DATABASE revcart_payments;
 
 -- Show all databases
 SHOW DATABASES;
