@@ -159,7 +159,7 @@ public class PaymentService {
         return dto;
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public DummyPaymentResponse processDummyPayment(DummyPaymentRequest request) {
         log.info("Processing dummy payment for orderId: {}, userId: {}, amount: {}", 
                 request.getOrderId(), request.getUserId(), request.getAmount());
