@@ -249,14 +249,15 @@ export class AdminOrdersComponent implements OnInit {
     const select = event.target as HTMLSelectElement;
     const newStatus = select.value;
 
+    // Always send status in uppercase to match backend enum
     this.http.post<any>(`${environment.apiUrl}/admin/orders/${orderId}/status`, {
-      status: newStatus,
-      note: `Status updated to ${newStatus}`
+      status: newStatus.toUpperCase()
     }).subscribe({
       next: () => {
         this.loadOrders();
       },
-      error: () => {
+      error: (err) => {
+        console.error('Status update failed:', err);
         alert('Failed to update order status');
         this.loadOrders();
       }

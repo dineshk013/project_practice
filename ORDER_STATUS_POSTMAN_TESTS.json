@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "Order Status Update Tests",
+    "description": "Test collection for order status update endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Update Status - Request Body (Uppercase)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"PROCESSING\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/orders/18/status",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "admin", "orders", "18", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Update Status - Request Body (Mixed Case)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Processing\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/orders/18/status",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "admin", "orders", "18", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Update Status - Query Parameter",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/admin/orders/18/status?status=SHIPPED",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "admin", "orders", "18", "status"],
+          "query": [
+            {
+              "key": "status",
+              "value": "SHIPPED"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Update Status - DELIVERED",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"DELIVERED\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/orders/18/status",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "admin", "orders", "18", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Update Status - Invalid (Should Fail)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"INVALID_STATUS\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/admin/orders/18/status",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "admin", "orders", "18", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. Delivery Agent - Update Status",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{delivery_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"OUT_FOR_DELIVERY\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/delivery/orders/18/status",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "delivery", "orders", "18", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. Get Order Details (Verify Update)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/orders/18",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "orders", "18"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "admin_token",
+      "value": "YOUR_ADMIN_JWT_TOKEN_HERE"
+    },
+    {
+      "key": "delivery_token",
+      "value": "YOUR_DELIVERY_JWT_TOKEN_HERE"
+    }
+  ]
+}

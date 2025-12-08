@@ -2,6 +2,7 @@ package com.revcart.orderservice.controller;
 
 import com.revcart.orderservice.dto.ApiResponse;
 import com.revcart.orderservice.dto.OrderDto;
+import com.revcart.orderservice.dto.StatusUpdateRequest;
 import com.revcart.orderservice.entity.Order;
 import com.revcart.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -43,18 +44,42 @@ public class AdminOrderController {
     @PostMapping("/orders/{orderId}/status")
     public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(
             @PathVariable Long orderId,
-            @RequestBody Map<String, String> request) {
+            @RequestParam(required = false) String status,
+            @RequestBody(required = false) StatusUpdateRequest request) {
         
-        String statusStr = request.get("status");
-        Order.OrderStatus status;
+        // Accept both query param and request body
+        String statusStr = status != null ? status : 
+                          (request != null ? request.getStatus() : null);
+        
+        if (statusStr == null || statusStr.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Status is required"));
+        }
+        
+        // Normalize to uppercase and handle UI labels
+        statusStr = statusStr.toUpperCase().trim();
+        
+        // Map UI labels to enum values
+        statusStr = switch (statusStr) {
+            case "PROCESSING" -> "PROCESSING";
+            case "SHIPPED" -> "SHIPPED";
+            case "DELIVERED" -> "DELIVERED";
+            case "COMPLETED" -> "COMPLETED";
+            case "CANCELLED" -> "CANCELLED";
+            case "PENDING" -> "PENDING";
+            case "CONFIRMED" -> "CONFIRMED";
+            default -> statusStr;
+        };
+        
+        Order.OrderStatus orderStatus;
         try {
-            status = Order.OrderStatus.valueOf(statusStr);
+            orderStatus = Order.OrderStatus.valueOf(statusStr);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Invalid status: " + statusStr));
         }
         
-        OrderDto order = orderService.updateOrderStatus(orderId, status);
+        OrderDto order = orderService.updateOrderStatus(orderId, orderStatus);
         return ResponseEntity.ok(ApiResponse.success(order, "Order status updated"));
     }
 
