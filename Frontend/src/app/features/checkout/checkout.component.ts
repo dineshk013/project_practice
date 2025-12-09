@@ -246,7 +246,7 @@ export class CheckoutComponent implements OnInit {
                     const orderId = order.id || order.orderId;
                     const orderAmount = order.totalAmount || this.grandTotal;
 
-                    if (this.formData().paymentMethod === 'card' || this.formData().paymentMethod === 'upi') {
+                    if (this.formData().paymentMethod === 'card') {
                         this.isLoading.set(false);
                         this.currentOrderId.set(orderId);
                         this.currentOrderAmount.set(orderAmount);
@@ -267,7 +267,7 @@ export class CheckoutComponent implements OnInit {
             });
     }
 
-    onPaymentSubmitted(paymentDetails: CardDetails): void {
+    onPaymentSubmitted(cardDetails: CardDetails): void {
         const orderId = this.currentOrderId();
         const amount = this.currentOrderAmount();
         const user = this.authService.user();
@@ -284,10 +284,7 @@ export class CheckoutComponent implements OnInit {
 
         this.paymentError.set(null);
 
-        const paymentMethod = this.formData().paymentMethod === 'upi' ? 'UPI' : 'RAZORPAY';
-        const upiId = (paymentDetails as any).upiId || undefined;
-
-        this.paymentService.processDummyPayment(orderId, user.id, amount, paymentMethod, upiId)
+        this.paymentService.processDummyPayment(orderId, user.id, amount, 'RAZORPAY')
             .subscribe({
                 next: (response) => {
                     if (response.success && response.data?.status === 'SUCCESS') {

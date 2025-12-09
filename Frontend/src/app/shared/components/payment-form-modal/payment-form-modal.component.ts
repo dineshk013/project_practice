@@ -9,8 +9,6 @@ export interface CardDetails {
   expiryMonth: string;
   expiryYear: string;
   cvv: string;
-  upiId?: string;
-  paymentMethod?: string;
 }
 
 @Component({
@@ -27,7 +25,7 @@ export interface CardDetails {
           <div class="flex items-center justify-between p-6 border-b">
             <div class="flex items-center gap-2">
               <lucide-icon [img]="CreditCard" class="h-5 w-5 text-primary"></lucide-icon>
-              <h2 class="text-xl font-bold">{{ paymentMethod() === 'upi' ? 'Enter UPI Details' : 'Enter Card Details' }}</h2>
+              <h2 class="text-xl font-bold">Enter Card Details</h2>
             </div>
             <button 
               (click)="closeModal()" 
@@ -38,25 +36,6 @@ export interface CardDetails {
 
           <!-- Form -->
           <form (ngSubmit)="onSubmit()" class="p-6 space-y-4">
-            @if (paymentMethod() === 'upi') {
-              <!-- UPI ID -->
-              <div>
-                <label class="block text-sm font-medium mb-1">UPI ID *</label>
-                <input
-                  type="text"
-                  [(ngModel)]="cardDetails().upiId"
-                  name="upiId"
-                  required
-                  placeholder="Enter UPI ID (e.g., user@upi)"
-                  class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  [class.border-red-500]="errors().upiId"
-                />
-                @if (errors().upiId) {
-                  <p class="text-red-500 text-xs mt-1">{{ errors().upiId }}</p>
-                }
-                <p class="text-gray-500 text-xs mt-1">Example: someone&#64;paytm, user&#64;phonepe</p>
-              </div>
-            } @else {
             <!-- Card Holder Name -->
             <div>
               <label class="block text-sm font-medium mb-1">Card Holder Name *</label>
@@ -156,7 +135,6 @@ export interface CardDetails {
                 <p class="text-red-500 text-xs mt-1">{{ errors().cvv }}</p>
               }
             </div>
-            }
 
             <!-- Error Message -->
             @if (errorMessage() || externalError()) {
@@ -196,7 +174,6 @@ export class PaymentFormModalComponent {
   orderId = input<number | null>(null);
   amount = input<number | null>(null);
   externalError = input<string | null>(null);
-  paymentMethod = input<string>('card');
   
   paymentSubmitted = output<CardDetails>();
   modalClosed = output<void>();
@@ -210,8 +187,7 @@ export class PaymentFormModalComponent {
     cardNumber: '',
     expiryMonth: '',
     expiryYear: '',
-    cvv: '',
-    upiId: ''
+    cvv: ''
   });
 
   errors = signal<Partial<Record<keyof CardDetails, string>>>({});
@@ -258,70 +234,66 @@ export class PaymentFormModalComponent {
     const details = this.cardDetails();
     const newErrors: Partial<Record<keyof CardDetails, string>> = {};
 
-    if (this.paymentMethod() === 'upi') {
-      // UPI validation
-      if (!details.upiId?.trim()) {
-        newErrors.upiId = 'UPI ID is required';
-      } else if (!/^[\w.\-]+@[\w]+$/.test(details.upiId)) {
-        newErrors.upiId = 'Invalid UPI ID format (e.g., user@upi)';
-      }
+    // Card Holder Name - Alphabets only
+    if (!details.cardHolderName.trim()) {
+      newErrors.cardHolderName = 'Card holder name is required';
+    } else if (details.cardHolderName.trim().length < 2) {
+      newErrors.cardHolderName = 'Name must be at least 2 characters';
+    } else if (!/^[a-zA-Z\s]+$/.test(details.cardHolderName)) {
+      newErrors.cardHolderName = 'Name must contain only letters';
+    }
+
+    // Card Number - Must be 16 digits
+    const cardNumberDigits = details.cardNumber.replace(/\s/g, '');
+    if (!cardNumberDigits) {
+      newErrors.cardNumber = 'Card number is required';
+    } else if (!/^\d+$/.test(cardNumberDigits)) {
+      newErrors.cardNumber = 'Card number must contain only digits';
+    } else if (cardNumberDigits.length !== 16) {
+      newErrors.cardNumber = 'Card number must be exactly 16 digits';
+    }
+
+    // Expiry Month - Must be 01-12
+    if (!details.expiryMonth) {
+      newErrors.expiryMonth = 'Expiry month is required';
     } else {
-      // Card validation
-      if (!details.cardHolderName.trim()) {
-        newErrors.cardHolderName = 'Card holder name is required';
-      } else if (details.cardHolderName.trim().length < 2) {
-        newErrors.cardHolderName = 'Name must be at least 2 characters';
-      } else if (!/^[a-zA-Z\s]+$/.test(details.cardHolderName)) {
-        newErrors.cardHolderName = 'Name must contain only letters';
+      const month = parseInt(details.expiryMonth, 10);
+      if (month < 1 || month > 12) {
+        newErrors.expiryMonth = 'Invalid month (01-12)';
       }
+    }
 
-      const cardNumberDigits = details.cardNumber.replace(/\s/g, '');
-      if (!cardNumberDigits) {
-        newErrors.cardNumber = 'Card number is required';
-      } else if (!/^\d+$/.test(cardNumberDigits)) {
-        newErrors.cardNumber = 'Card number must contain only digits';
-      } else if (cardNumberDigits.length !== 16) {
-        newErrors.cardNumber = 'Card number must be exactly 16 digits';
+    // Expiry Year - Must be current year or future
+    const currentYear = new Date().getFullYear();
+    if (!details.expiryYear) {
+      newErrors.expiryYear = 'Expiry year is required';
+    } else {
+      const year = parseInt(details.expiryYear, 10);
+      if (year < currentYear) {
+        newErrors.expiryYear = 'Card has expired';
+      } else if (year > currentYear + 20) {
+        newErrors.expiryYear = 'Invalid expiry year';
       }
+    }
 
-      if (!details.expiryMonth) {
-        newErrors.expiryMonth = 'Expiry month is required';
-      } else {
-        const month = parseInt(details.expiryMonth, 10);
-        if (month < 1 || month > 12) {
-          newErrors.expiryMonth = 'Invalid month (01-12)';
-        }
+    // Check if card is expired (month + year)
+    if (details.expiryMonth && details.expiryYear && !newErrors.expiryMonth && !newErrors.expiryYear) {
+      const expMonth = parseInt(details.expiryMonth, 10);
+      const expYear = parseInt(details.expiryYear, 10);
+      const currentMonth = new Date().getMonth() + 1;
+      
+      if (expYear === currentYear && expMonth < currentMonth) {
+        newErrors.expiryMonth = 'Card has expired';
       }
+    }
 
-      const currentYear = new Date().getFullYear();
-      if (!details.expiryYear) {
-        newErrors.expiryYear = 'Expiry year is required';
-      } else {
-        const year = parseInt(details.expiryYear, 10);
-        if (year < currentYear) {
-          newErrors.expiryYear = 'Card has expired';
-        } else if (year > currentYear + 20) {
-          newErrors.expiryYear = 'Invalid expiry year';
-        }
-      }
-
-      if (details.expiryMonth && details.expiryYear && !newErrors.expiryMonth && !newErrors.expiryYear) {
-        const expMonth = parseInt(details.expiryMonth, 10);
-        const expYear = parseInt(details.expiryYear, 10);
-        const currentMonth = new Date().getMonth() + 1;
-        
-        if (expYear === currentYear && expMonth < currentMonth) {
-          newErrors.expiryMonth = 'Card has expired';
-        }
-      }
-
-      if (!details.cvv) {
-        newErrors.cvv = 'CVV is required';
-      } else if (!/^\d+$/.test(details.cvv)) {
-        newErrors.cvv = 'CVV must contain only digits';
-      } else if (details.cvv.length !== 3) {
-        newErrors.cvv = 'CVV must be exactly 3 digits';
-      }
+    // CVV - Must be 3 digits
+    if (!details.cvv) {
+      newErrors.cvv = 'CVV is required';
+    } else if (!/^\d+$/.test(details.cvv)) {
+      newErrors.cvv = 'CVV must contain only digits';
+    } else if (details.cvv.length !== 3) {
+      newErrors.cvv = 'CVV must be exactly 3 digits';
     }
 
     this.errors.set(newErrors);
@@ -364,8 +336,7 @@ export class PaymentFormModalComponent {
       cardNumber: '',
       expiryMonth: '',
       expiryYear: '',
-      cvv: '',
-      upiId: ''
+      cvv: ''
     });
     this.errors.set({});
     this.errorMessage.set(null);
