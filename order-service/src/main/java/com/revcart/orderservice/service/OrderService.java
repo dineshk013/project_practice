@@ -392,16 +392,23 @@ public class OrderService {
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
         
-        // Fetch customer name
+        // Fetch customer info
         try {
             ApiResponse<Object> userResponse = userServiceClient.getUserById(order.getUserId());
             if (userResponse.isSuccess() && userResponse.getData() != null) {
                 @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> userData = (java.util.Map<String, Object>) userResponse.getData();
-                dto.setCustomerName((String) userData.get("name"));
+                String name = (String) userData.get("name");
+                dto.setCustomerName(name);
+                
+                OrderDto.UserInfo userInfo = new OrderDto.UserInfo();
+                userInfo.setFullName(name);
+                userInfo.setEmail((String) userData.get("email"));
+                userInfo.setPhone((String) userData.get("phone"));
+                dto.setUser(userInfo);
             }
         } catch (Exception e) {
-            log.warn("Failed to fetch customer name for order {}: {}", order.getId(), e.getMessage());
+            log.warn("Failed to fetch customer info for order {}: {}", order.getId(), e.getMessage());
             dto.setCustomerName("N/A");
         }
 

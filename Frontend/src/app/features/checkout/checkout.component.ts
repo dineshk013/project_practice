@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { OrderService } from '../../core/services/order.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { PaymentFormModalComponent, CardDetails } from '../../shared/components/payment-form-modal/payment-form-modal.component';
+import { UpiPaymentModalComponent, UpiDetails } from '../../shared/components/upi-payment-modal/upi-payment-modal.component';
 import { environment } from '../../../environments/environment';
 import { LucideAngularModule, CreditCard, MapPin } from 'lucide-angular';
 
@@ -31,7 +32,7 @@ interface ApiResponse<T> {
 @Component({
     selector: 'app-checkout',
     standalone: true,
-    imports: [CommonModule, FormsModule, LucideAngularModule, PaymentFormModalComponent],
+    imports: [CommonModule, FormsModule, LucideAngularModule, PaymentFormModalComponent, UpiPaymentModalComponent],
     templateUrl: './checkout.component.html',
     styleUrls: ['./checkout.component.scss']
 })
@@ -62,9 +63,11 @@ export class CheckoutComponent implements OnInit {
     addresses = signal<AddressDto[]>([]);
     selectedAddressId: number | 'new' = 'new';
     showPaymentModal = signal(false);
+    showUpiModal = signal(false);
     currentOrderId = signal<number | null>(null);
     currentOrderAmount = signal<number | null>(null);
     paymentError = signal<string | null>(null);
+    upiError = signal<string | null>(null);
     isSubmitting = signal(false);
 
     ngOnInit(): void {
@@ -251,6 +254,11 @@ export class CheckoutComponent implements OnInit {
                         this.currentOrderId.set(orderId);
                         this.currentOrderAmount.set(orderAmount);
                         this.showPaymentModal.set(true);
+                    } else if (this.formData().paymentMethod === 'upi') {
+                        this.isLoading.set(false);
+                        this.currentOrderId.set(orderId);
+                        this.currentOrderAmount.set(orderAmount);
+                        this.showUpiModal.set(true);
                     } else {
                         this.isLoading.set(false);
                         this.isSubmitting.set(false);
@@ -309,11 +317,58 @@ export class CheckoutComponent implements OnInit {
             });
     }
 
+    onUpiPaymentSubmitted(upiDetails: UpiDetails): void {
+        const orderId = this.currentOrderId();
+        const amount = this.currentOrderAmount();
+        const user = this.authService.user();
+
+        if (!orderId || !amount) {
+            this.upiError.set('Order information is missing. Please try again.');
+            return;
+        }
+
+        if (!user || !user.id) {
+            this.upiError.set('User not authenticated. Please login again.');
+            return;
+        }
+
+        this.upiError.set(null);
+
+        this.paymentService.processDummyPayment(orderId, user.id, amount, 'UPI', upiDetails.upiId)
+            .subscribe({
+                next: (response) => {
+                    if (response.success && response.data?.status === 'SUCCESS') {
+                        this.cartService.clearCart();
+                        this.showUpiModal.set(false);
+                        this.upiError.set(null);
+                        this.currentOrderId.set(null);
+                        this.currentOrderAmount.set(null);
+                        this.isSubmitting.set(false);
+                        this.router.navigate(['/orders']);
+                    } else {
+                        this.upiError.set(response.data?.message || response.message || 'Payment failed');
+                    }
+                },
+                error: (error) => {
+                    console.error('UPI payment failed:', error);
+                    this.upiError.set(error.error?.message || 'Payment processing failed. Please try again.');
+                }
+            });
+    }
+
     onPaymentModalClosed(): void {
         this.showPaymentModal.set(false);
         this.currentOrderId.set(null);
         this.currentOrderAmount.set(null);
         this.paymentError.set(null);
+        this.isSubmitting.set(false);
+    }
+
+    onUpiModalClosed(): void {
+        this.showUpiModal.set(false);
+        this.currentOrderId.set(null);
+        this.currentOrderAmount.set(null);
+        this.upiError.set(null);
         this.isSubmitting.set(false);
     }
 }

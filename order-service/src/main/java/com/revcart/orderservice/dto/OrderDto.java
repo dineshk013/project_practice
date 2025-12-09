@@ -15,6 +15,7 @@ public class OrderDto {
     private Long id;
     private Long userId;
     private String customerName;
+    private UserInfo user;
     private String orderNumber;
     private Order.OrderStatus status;
     private Double totalAmount;
@@ -33,4 +34,13 @@ public class OrderDto {
     private List<OrderItemDto> items;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserInfo {
+        private String fullName;
+        private String email;
+        private String phone;
+    }
 }

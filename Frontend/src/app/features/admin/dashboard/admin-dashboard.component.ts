@@ -2,7 +2,6 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { OrderService } from '../../../core/services/order.service';
 import { ProductService } from '../../../core/services/product.service';
 import { Order } from '../../../core/models/order.model';
 import { environment } from '../../../../environments/environment';
@@ -17,10 +16,9 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
       <div class="container mx-auto px-4">
         <h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
-        <!-- Stats Grid -->
+        <!-- Stats -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          
-          <!-- TOTAL ORDERS -->
+
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Total Orders</h3>
@@ -29,7 +27,6 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
             <p class="text-3xl font-bold">{{ stats.totalOrders }}</p>
           </div>
 
-          <!-- TOTAL REVENUE -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Total Revenue</h3>
@@ -38,7 +35,6 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
             <p class="text-3xl font-bold">₹{{ stats.totalRevenue.toFixed(2) }}</p>
           </div>
 
-          <!-- TOTAL PRODUCTS -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Total Products</h3>
@@ -48,7 +44,6 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
             <p class="text-xs text-blue-600 mt-1">{{ stats.inStock }} in stock</p>
           </div>
 
-          <!-- ACTIVE USERS -->
           <div class="bg-white p-6 rounded-lg border">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-sm font-medium text-muted-foreground">Active Users</h3>
@@ -58,9 +53,35 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
           </div>
         </div>
 
+        <!-- Action Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+
+          <a routerLink="/admin/products" class="bg-white p-6 rounded-lg border hover:shadow-md transition cursor-pointer">
+            <h3 class="font-medium mb-2 text-lg">Manage Products</h3>
+            <p class="text-sm text-muted-foreground">Add, edit, or remove products</p>
+          </a>
+
+          <a routerLink="/admin/categories" class="bg-white p-6 rounded-lg border hover:shadow-md transition cursor-pointer">
+            <h3 class="font-medium mb-2 text-lg">Manage Categories</h3>
+            <p class="text-sm text-muted-foreground">Add, edit, or remove categories</p>
+          </a>
+
+          <a routerLink="/admin/orders" class="bg-white p-6 rounded-lg border hover:shadow-md transition cursor-pointer">
+            <h3 class="font-medium mb-2 text-lg">Manage Orders</h3>
+            <p class="text-sm text-muted-foreground">View and update order status</p>
+          </a>
+
+          <a routerLink="/admin/users" class="bg-white p-6 rounded-lg border hover:shadow-md transition cursor-pointer">
+            <h3 class="font-medium mb-2 text-lg">Manage Users</h3>
+            <p class="text-sm text-muted-foreground">View and manage user accounts</p>
+          </a>
+
+        </div>
+
         <!-- Recent Orders -->
         <div class="bg-white rounded-lg border p-6">
           <h2 class="text-xl font-bold mb-4">Recent Orders</h2>
+
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead>
@@ -79,21 +100,15 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
                     <td class="py-3 px-4">{{ order.date }}</td>
                     <td class="py-3 px-4">
                       <span class="px-2 py-1 rounded-full text-xs"
-                        [ngClass]="{
-                          'bg-yellow-100 text-yellow-800': order.status === 'processing',
-                          'bg-purple-100 text-purple-800': order.status === 'packed',
-                          'bg-blue-100 text-blue-800': order.status === 'in_transit',
-                          'bg-green-100 text-green-800': order.status === 'delivered',
-                          'bg-red-100 text-red-800': order.status === 'cancelled'
-                        }">
+                        [ngClass]="getStatusStyle(order.status)">
                         {{ order.status }}
                       </span>
                     </td>
                     <td class="py-3 px-4">₹{{ order.total.toFixed(2) }}</td>
                     <td class="py-3 px-4">
-                      <button routerLink="/admin/orders" class="text-primary hover:underline">
+                      <a routerLink="/admin/orders" class="text-primary hover:underline">
                         View
-                      </button>
+                      </a>
                     </td>
                   </tr>
                 }
@@ -101,6 +116,7 @@ import { LucideAngularModule, Package, Users, DollarSign } from 'lucide-angular'
             </table>
           </div>
         </div>
+
       </div>
     </div>
   `
@@ -128,7 +144,6 @@ export class AdminDashboardComponent implements OnInit {
     this.loadStats();
     this.loadRecentOrders();
 
-    // Dashboard refresh trigger from Manage Orders
     window.addEventListener('orderUpdated', () => {
       this.loadStats();
       this.loadRecentOrders();
@@ -183,5 +198,16 @@ export class AdminDashboardComponent implements OnInit {
       'CANCELLED': 'cancelled'
     };
     return lookup[status.toUpperCase()] || 'processing';
+  }
+
+  getStatusStyle(status: string): string {
+    const styleMap: any = {
+      'processing': 'bg-yellow-100 text-yellow-800',
+      'packed': 'bg-purple-100 text-purple-800',
+      'in_transit': 'bg-blue-100 text-blue-800',
+      'delivered': 'bg-green-100 text-green-800',
+      'cancelled': 'bg-red-100 text-red-800'
+    };
+    return styleMap[status] || 'bg-gray-100 text-gray-800';
   }
 }

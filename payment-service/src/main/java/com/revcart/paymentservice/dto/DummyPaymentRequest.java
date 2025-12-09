@@ -8,4 +8,5 @@ public class DummyPaymentRequest {
     private Long userId;
     private Double amount;
     private String paymentMethod;
+    private String upiId;
 }

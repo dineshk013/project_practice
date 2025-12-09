@@ -176,6 +176,9 @@ public class PaymentService {
                 payment.setStatus(Payment.PaymentStatus.SUCCESS);
                 payment.setTransactionId("TXN-" + UUID.randomUUID().toString());
                 payment.setUpdatedAt(LocalDateTime.now());
+                if (request.getUpiId() != null) {
+                    payment.setUpiId(request.getUpiId());
+                }
             } else {
                 // Create new payment record
                 log.info("Creating new payment for order: {}", request.getOrderId());
@@ -186,6 +189,9 @@ public class PaymentService {
                 payment.setPaymentMethod(request.getPaymentMethod());
                 payment.setStatus(Payment.PaymentStatus.SUCCESS);
                 payment.setTransactionId("TXN-" + UUID.randomUUID().toString());
+                if (request.getUpiId() != null) {
+                    payment.setUpiId(request.getUpiId());
+                }
             }
 
             Payment saved = paymentRepository.save(payment);

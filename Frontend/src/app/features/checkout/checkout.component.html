@@ -139,4 +139,12 @@
         (paymentSubmitted)="onPaymentSubmitted($event)"
         (modalClosed)="onPaymentModalClosed()">
     </app-payment-form-modal>
+
+    <!-- UPI Payment Modal -->
+    <app-upi-payment-modal
+        [isOpen]="showUpiModal()"
+        [externalError]="upiError()"
+        (paymentSubmitted)="onUpiPaymentSubmitted($event)"
+        (modalClosed)="onUpiModalClosed()">
+    </app-upi-payment-modal>
 </div>

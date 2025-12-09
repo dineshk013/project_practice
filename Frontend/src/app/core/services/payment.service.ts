@@ -38,13 +38,17 @@ export class PaymentService {
    * @param paymentMethod - The payment method
    * @returns Observable with payment response
    */
-  processDummyPayment(orderId: number, userId: number, amount: number, paymentMethod: string): Observable<ApiResponse<PaymentResponse>> {
-    const request: DummyPaymentRequest = {
+  processDummyPayment(orderId: number, userId: number, amount: number, paymentMethod: string, upiId?: string): Observable<ApiResponse<PaymentResponse>> {
+    const request: any = {
       orderId,
       userId,
       amount,
       paymentMethod
     };
+    
+    if (upiId) {
+      request.upiId = upiId;
+    }
 
     console.log('Processing payment:', request);
     

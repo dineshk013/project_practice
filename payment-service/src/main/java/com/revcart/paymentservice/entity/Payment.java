@@ -38,6 +38,9 @@ public class Payment {
     @Column(name = "failure_reason")
     private String failureReason;
 
+    @Column(name = "upi_id")
+    private String upiId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

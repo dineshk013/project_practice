@@ -101,9 +101,9 @@ public class AdminOrderController {
 
 
     @GetMapping("/orders/{id}")
-    public ResponseEntity<ApiResponse<OrderDto>> getAdminOrderById(@PathVariable Long id) {
+    public ResponseEntity<OrderDto> getAdminOrderById(@PathVariable Long id) {
         OrderDto order = orderService.getOrderById(id);
-        return ResponseEntity.ok(ApiResponse.success(order, "Order retrieved successfully"));
+        return ResponseEntity.ok(order);
     }
 
     @GetMapping("/dashboard/stats")
