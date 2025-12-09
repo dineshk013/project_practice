@@ -82,7 +82,7 @@ interface PagedResponse<T> {
                   </td>
 
                   <td class="px-6 py-4">{{ formatDate(order.createdAt) }}</td>
-                  <td class="px-6 py-4">{{ order.items?.length || 0 }} items</td>
+                  <td class="px-6 py-4">{{ order.items.length }} items</td>
                   <td class="px-6 py-4 font-medium">₹{{ order.totalAmount.toFixed(2) }}</td>
 
                   <td class="px-6 py-4">

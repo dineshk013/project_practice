@@ -4,6 +4,7 @@ import com.revcart.deliveryservice.client.NotificationServiceClient;
 import com.revcart.deliveryservice.client.OrderServiceClient;
 import com.revcart.deliveryservice.dto.*;
 import com.revcart.deliveryservice.entity.Delivery;
+import com.revcart.deliveryservice.entity.Delivery.DeliveryStatus;
 import com.revcart.deliveryservice.entity.DeliveryTrackingLog;
 import com.revcart.deliveryservice.exception.BadRequestException;
 import com.revcart.deliveryservice.exception.ResourceNotFoundException;
@@ -28,6 +29,8 @@ public class DeliveryService {
     private final OrderServiceClient orderServiceClient;
     private final NotificationServiceClient notificationServiceClient;
 
+    // ---------------- CORE OPERATIONS ----------------
+
     @Transactional
     public DeliveryDto assignDelivery(AssignDeliveryRequest request) {
         if (deliveryRepository.existsByOrderId(request.getOrderId())) {
@@ -38,14 +41,16 @@ public class DeliveryService {
         delivery.setOrderId(request.getOrderId());
         delivery.setUserId(request.getUserId());
         delivery.setAgentId(request.getAgentId());
-        delivery.setStatus(Delivery.DeliveryStatus.ASSIGNED);
+        delivery.setStatus(DeliveryStatus.ASSIGNED);
         delivery.setEstimatedDeliveryDate(request.getEstimatedDeliveryDate());
+        delivery.setCreatedAt(LocalDateTime.now());
+        delivery.setUpdatedAt(LocalDateTime.now());
 
         delivery = deliveryRepository.save(delivery);
 
-        addTrackingLog(delivery, Delivery.DeliveryStatus.ASSIGNED, null, "Delivery agent assigned");
+        addTrackingLog(delivery, DeliveryStatus.ASSIGNED, null, "Delivery agent assigned");
 
-        // DO NOT auto-update order status - admin/delivery agent will manually update
+        // Notify customer that a delivery agent has been assigned
         sendNotification(request.getOrderId(), request.getUserId(), "ASSIGNED");
 
         log.info("Delivery assigned: {} for order: {}", delivery.getId(), request.getOrderId());
@@ -57,10 +62,11 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for order: " + orderId));
 
-        Delivery.DeliveryStatus newStatus = Delivery.DeliveryStatus.valueOf(request.getStatus());
+        DeliveryStatus newStatus = DeliveryStatus.valueOf(request.getStatus());
         delivery.setStatus(newStatus);
+        delivery.setUpdatedAt(LocalDateTime.now());
 
-        if (newStatus == Delivery.DeliveryStatus.DELIVERED) {
+        if (newStatus == DeliveryStatus.DELIVERED) {
             delivery.setActualDeliveryDate(LocalDateTime.now());
             notifyOrderService(orderId, "DELIVERED");
             sendNotification(orderId, delivery.getUserId(), "DELIVERED");
@@ -69,7 +75,7 @@ public class DeliveryService {
         delivery = deliveryRepository.save(delivery);
         addTrackingLog(delivery, newStatus, request.getLocation(), request.getMessage());
 
-        log.info("Delivery status updated: {} -> {}", orderId, newStatus);
+        log.info("Delivery status updated: order={}, status={}", orderId, newStatus);
         return DeliveryDto.fromEntity(delivery);
     }
 
@@ -82,7 +88,7 @@ public class DeliveryService {
     public List<TrackingLogDto> getTrackingHistory(Long orderId) {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for order: " + orderId));
-        
+
         return trackingLogRepository.findByDeliveryIdOrderByTimestampDesc(delivery.getId())
                 .stream()
                 .map(TrackingLogDto::fromEntity)
@@ -96,12 +102,60 @@ public class DeliveryService {
                 .collect(Collectors.toList());
     }
 
-    private void addTrackingLog(Delivery delivery, Delivery.DeliveryStatus status, String location, String message) {
+    // ---------------- DASHBOARD QUERIES (USED BY /orders/* ENDPOINTS) ----------------
+
+    /**
+     * Assigned deliveries for agent (anything not yet delivered/cancelled)
+     */
+    public List<DeliveryDto> getAssignedDeliveriesForAgent(Long agentId) {
+        // ASSIGNED + PICKED_UP + IN_TRANSIT + OUT_FOR_DELIVERY
+        List<DeliveryStatus> statuses = List.of(
+                DeliveryStatus.ASSIGNED,
+                DeliveryStatus.PICKED_UP,
+                DeliveryStatus.IN_TRANSIT,
+                DeliveryStatus.OUT_FOR_DELIVERY
+        );
+
+        return deliveryRepository.findByAgentIdAndStatusInOrderByCreatedAtDesc(agentId, statuses)
+                .stream()
+                .map(DeliveryDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * In-transit deliveries for agent
+     */
+    public List<DeliveryDto> getInTransitDeliveriesForAgent(Long agentId) {
+        List<DeliveryStatus> statuses = List.of(
+                DeliveryStatus.IN_TRANSIT,
+                DeliveryStatus.OUT_FOR_DELIVERY
+        );
+
+        return deliveryRepository.findByAgentIdAndStatusInOrderByCreatedAtDesc(agentId, statuses)
+                .stream()
+                .map(DeliveryDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Pending deliveries for agent (assigned but not started)
+     */
+    public List<DeliveryDto> getPendingDeliveriesForAgent(Long agentId) {
+        return deliveryRepository.findByAgentIdAndStatusOrderByCreatedAtDesc(agentId, DeliveryStatus.ASSIGNED)
+                .stream()
+                .map(DeliveryDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    // ---------------- INTERNAL HELPERS ----------------
+
+    private void addTrackingLog(Delivery delivery, DeliveryStatus status, String location, String message) {
         DeliveryTrackingLog log = new DeliveryTrackingLog();
         log.setDelivery(delivery);
         log.setStatus(status);
         log.setLocation(location);
         log.setMessage(message);
+        log.setTimestamp(LocalDateTime.now());
         trackingLogRepository.save(log);
     }
 
