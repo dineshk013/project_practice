@@ -97,15 +97,6 @@ pipeline {
             }
         }
         
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    echo '🐳 Building Docker images...'
-                    bat 'docker-compose build'
-                }
-            }
-        }
-        
         stage('Build Complete') {
             steps {
                 echo '✅ Build and tests completed successfully!'
