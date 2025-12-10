@@ -201,12 +201,21 @@ export class AdminOrdersComponent implements OnInit {
 
   orders: OrderDto[] = [];
   selectedOrder: OrderDto | null = null;
+  private refreshInterval: any;
 
   readonly Eye = Eye;
   readonly Package = Package;
 
   ngOnInit(): void {
     this.loadOrders();
+    // Auto-refresh every 5 seconds to catch payment status updates
+    this.refreshInterval = setInterval(() => this.loadOrders(), 5000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
   }
 
   loadOrders(): void {
@@ -215,6 +224,7 @@ export class AdminOrdersComponent implements OnInit {
     ).subscribe({
       next: (res) => {
         this.orders = res.content || [];
+        console.log('Orders refreshed:', this.orders.length);
       },
       error: (err) => console.error('Load failed:', err)
     });

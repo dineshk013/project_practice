@@ -48,6 +48,13 @@ public class DeliveryController {
         List<OrderDto> orders = orderService.getPendingDeliveryOrders();
         return ResponseEntity.ok(ApiResponse.success(orders, "Pending orders retrieved"));
     }
+    
+    @GetMapping("/orders/delivered")
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getDeliveredOrders(
+            @RequestHeader("X-User-Id") Long userId) {
+        List<OrderDto> orders = orderService.getDeliveredOrdersByAgent(userId);
+        return ResponseEntity.ok(ApiResponse.success(orders, "Delivered orders retrieved"));
+    }
 
     @PostMapping("/orders/{orderId}/status")
     public ResponseEntity<ApiResponse<OrderDto>> updateDeliveryStatus(

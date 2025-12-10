@@ -143,6 +143,7 @@
     <!-- UPI Payment Modal -->
     <app-upi-payment-modal
         [isOpen]="showUpiModal()"
+        [amount]="currentOrderAmount()"
         [externalError]="upiError()"
         (paymentSubmitted)="onUpiPaymentSubmitted($event)"
         (modalClosed)="onUpiModalClosed()">

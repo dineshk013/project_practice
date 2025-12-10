@@ -119,13 +119,16 @@ export class AuthService {
   }
 
   signup(data: SignupData): Observable<User> {
+    const payload = {
+      email: data.email,
+      password: data.password,
+      name: data.name,
+      phone: data.phone || '',
+      role: data.role || 'CUSTOMER'
+    };
+    console.log('🚀 Signup payload being sent:', payload);
     return this.httpClient
-      .post<ApiResponse<BackendAuthResponse>>(`${this.apiUrl}/register`, {
-        email: data.email,
-        password: data.password,
-        name: data.name,
-        phone: data.phone || ''
-      })
+      .post<ApiResponse<BackendAuthResponse>>(`${this.apiUrl}/register`, payload)
       .pipe(
         (source) =>
           new Observable<User>((subscriber) => {
@@ -179,9 +182,8 @@ export class AuthService {
 
   verifyOtp(email: string, otp: string): Observable<void> {
     return this.httpClient
-      .post<ApiResponse<string>>(`${this.apiUrl}/verify-otp`, {
-        email,
-        otp
+      .post<ApiResponse<string>>(`${this.apiUrl}/verify-otp`, null, {
+        params: { email, otp }
       })
       .pipe((source) =>
         new Observable<void>((subscriber) => {

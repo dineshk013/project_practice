@@ -247,17 +247,16 @@ export class CheckoutComponent implements OnInit {
                 next: (response) => {
                     const order = response.data || response;
                     const orderId = order.id || order.orderId;
-                    const orderAmount = order.totalAmount || this.grandTotal;
 
                     if (this.formData().paymentMethod === 'card') {
                         this.isLoading.set(false);
                         this.currentOrderId.set(orderId);
-                        this.currentOrderAmount.set(orderAmount);
+                        this.currentOrderAmount.set(this.grandTotal);
                         this.showPaymentModal.set(true);
                     } else if (this.formData().paymentMethod === 'upi') {
                         this.isLoading.set(false);
                         this.currentOrderId.set(orderId);
-                        this.currentOrderAmount.set(orderAmount);
+                        this.currentOrderAmount.set(this.grandTotal);
                         this.showUpiModal.set(true);
                     } else {
                         this.isLoading.set(false);

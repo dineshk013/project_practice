@@ -1,12 +1,13 @@
 spring:
   application:
     name: user-service
-  
+
   mail:
     host: smtp.gmail.com
     port: 587
     username: ${MAIL_USERNAME:mahidineshk@gmail.com}
     password: ${MAIL_PASSWORD:qzrxujdvtpoesbhr}
+    protocol: smtp
     properties:
       mail:
         smtp:
@@ -14,16 +15,18 @@ spring:
           starttls:
             enable: true
             required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-  
+          ssl:
+            trust: smtp.gmail.com
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/revcart_users?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: Mahidinesh@07
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
-  
+
   jpa:
     hibernate:
       ddl-auto: update

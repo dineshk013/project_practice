@@ -1,44 +1,70 @@
 # Compiled class files
 *.class
-target/
 *.jar
 *.war
 *.ear
 
-# Log files
-*.log
-logs/
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
 
-# IDE files
+# Node
+node_modules/
+npm-debug.log
+.angular/
+dist/
+Frontend/dist/
+Frontend/.angular/
+
+# IDE
 .idea/
 *.iml
 .vscode/
 .DS_Store
+*.swp
+*.swo
+*~
 
-# Node modules
-node_modules/
-dist/
-.angular/
+# Logs
+*.log
+logs/
 
-# Environment files
+# Environment
 .env
-*.env.local
+*.pem
+*.key
 
-# Maven
-.mvn/
-mvnw
-mvnw.cmd
+# Database backups
+*.sql
+*.dump
 
-# Build files
+# Docker
+.dockerignore
+
+# Temp files
+*.tmp
+*.bak
+temp/
+tmp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Build artifacts
 build/
 out/
 
-# Temporary files
-*.tmp
-*.bak
-*.swp
-*~
+# Test coverage
+coverage/
+.nyc_output/
 
-# OS files
-Thumbs.db
-.DS_Store
+# Package files
+*.tgz
+*.zip
+*.tar.gz

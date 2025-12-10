@@ -21,17 +21,25 @@ export interface CardDetails {
            (click)="onBackdropClick($event)">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
              (click)="$event.stopPropagation()">
-          <!-- Header -->
-          <div class="flex items-center justify-between p-6 border-b">
-            <div class="flex items-center gap-2">
-              <lucide-icon [img]="CreditCard" class="h-5 w-5 text-primary"></lucide-icon>
-              <h2 class="text-xl font-bold">Enter Card Details</h2>
+          <!-- Razorpay Header -->
+          <div class="bg-[#528FF0] text-white p-6 rounded-t-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold">RevCart</h2>
+                <p class="text-sm opacity-90">Powered by Razorpay</p>
+              </div>
+              <button 
+                (click)="closeModal()" 
+                class="text-white hover:bg-white/20 rounded p-1 transition-colors">
+                <lucide-icon [img]="X" class="h-5 w-5"></lucide-icon>
+              </button>
             </div>
-            <button 
-              (click)="closeModal()" 
-              class="text-gray-400 hover:text-gray-600 transition-colors">
-              <lucide-icon [img]="X" class="h-5 w-5"></lucide-icon>
-            </button>
+            @if (amount()) {
+              <div class="mt-4">
+                <p class="text-sm opacity-90">Amount to pay</p>
+                <p class="text-2xl font-bold">₹{{ amount()?.toFixed(2) }}</p>
+              </div>
+            }
           </div>
 
           <!-- Form -->
@@ -144,19 +152,16 @@ export interface CardDetails {
             }
 
             <!-- Actions -->
-            <div class="flex gap-3 pt-4">
-              <button
-                type="button"
-                (click)="closeModal()"
-                class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                Cancel
-              </button>
+            <div class="pt-4">
               <button
                 type="submit"
                 [disabled]="isProcessing()"
-                class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                {{ isProcessing() ? 'Processing...' : 'Pay Now' }}
+                class="w-full px-4 py-3 bg-[#528FF0] text-white rounded-md hover:bg-[#3d7ad6] disabled:opacity-50 transition-colors font-medium">
+                {{ isProcessing() ? 'Processing Payment...' : 'Pay ₹' + (amount()?.toFixed(2) || '0.00') }}
               </button>
+              <p class="text-xs text-center text-gray-500 mt-3">
+                🔒 Secured by Razorpay (Test Mode)
+              </p>
             </div>
           </form>
         </div>

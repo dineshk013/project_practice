@@ -4,6 +4,7 @@ import com.revcart.userservice.dto.ApiResponse;
 import com.revcart.userservice.dto.UserDto;
 import com.revcart.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminUserController {
 
     private final UserService userService;
@@ -41,8 +43,10 @@ public class AdminUserController {
     }
     
     @GetMapping("/count/active")
-    public long getActiveUsers() {
-        return userService.countActiveUsers();
+    public ResponseEntity<Long> getActiveUsers() {
+        long count = userService.countActiveUsers();
+        log.info("Active users count: {}", count);
+        return ResponseEntity.ok(count);
     }
     
     @GetMapping("/delivery-agents")

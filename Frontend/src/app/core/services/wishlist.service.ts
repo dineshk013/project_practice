@@ -1,12 +1,15 @@
-import { Injectable, signal, computed, Inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, signal, computed, Inject, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Product } from '../models/product.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WishlistService {
   private itemsSignal = signal<Product[]>([]);
+  private http = inject(HttpClient);
 
   items = this.itemsSignal.asReadonly();
   itemCount = computed(() => this.itemsSignal().length);
@@ -38,6 +41,7 @@ export class WishlistService {
     if (!this.isInWishlist(product.id)) {
       this.itemsSignal.update(items => [...items, product]);
       this.saveToStorage();
+      this.sendWishlistNotification(product.name);
     }
   }
 
@@ -56,6 +60,31 @@ export class WishlistService {
     this.itemsSignal.set([]);
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('revcart_wishlist');
+    }
+  }
+
+  private sendWishlistNotification(productName: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    
+    const userStr = localStorage.getItem('revcart_user');
+    if (!userStr) return;
+
+    try {
+      const user = JSON.parse(userStr);
+      const userId = user.id;
+      if (!userId) return;
+
+      this.http.post(`${environment.apiUrl}/notifications`, {
+        userId: userId,
+        title: 'Wishlist Updated',
+        message: `${productName} added to wishlist successfully`,
+        type: 'WISHLIST'
+      }).subscribe({
+        next: () => console.log('✅ Wishlist notification sent'),
+        error: (err) => console.error('❌ Wishlist notification failed:', err)
+      });
+    } catch (error) {
+      console.error('Error parsing user data:', error);
     }
   }
 }

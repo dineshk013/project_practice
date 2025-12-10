@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { CartService } from '../../../core/services/cart.service';
+import { WishlistService } from '../../../core/services/wishlist.service';
 import {
   LucideAngularModule,
   ShoppingCart,
@@ -27,6 +28,7 @@ import {
 export class NavbarComponent {
   authService = inject(AuthService);
   cartService = inject(CartService);
+  wishlistService = inject(WishlistService);
   router = inject(Router);
 
   searchQuery = '';

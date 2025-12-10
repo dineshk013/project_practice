@@ -241,19 +241,18 @@ public class OrderService {
         
         order.setStatus(status);
         
-        // Auto-assign delivery agent when status changes to OUT_FOR_DELIVERY
+        // Auto-assign delivery agent ID 17 when status changes to OUT_FOR_DELIVERY
         if (status == Order.OrderStatus.OUT_FOR_DELIVERY && order.getDeliveryAgentId() == null) {
+            Long agentId = 17L; // Fixed delivery agent ID
+            order.setDeliveryAgentId(agentId);
+            log.info("Auto-assigned delivery agent {} to order {}", agentId, id);
+            
+            // Notify delivery agent about new assignment
             try {
-                ApiResponse<java.util.List<Object>> agentsResponse = userServiceClient.getDeliveryAgents();
-                if (agentsResponse.isSuccess() && agentsResponse.getData() != null && !agentsResponse.getData().isEmpty()) {
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> firstAgent = (java.util.Map<String, Object>) agentsResponse.getData().get(0);
-                    Long agentId = ((Number) firstAgent.get("id")).longValue();
-                    order.setDeliveryAgentId(agentId);
-                    log.info("Auto-assigned delivery agent {} to order {}", agentId, id);
-                }
+                notificationServiceClient.notifyOrder(id, agentId, "ASSIGNED");
+                log.info("Notification sent to delivery agent {} for order {}", agentId, id);
             } catch (Exception e) {
-                log.warn("Failed to auto-assign delivery agent for order {}: {}", id, e.getMessage());
+                log.error("Failed to notify delivery agent {}: {}", agentId, e.getMessage());
             }
         }
         
@@ -355,19 +354,27 @@ public class OrderService {
         long activeUsers = 0;
         long totalUsers = 0;
         try {
-            Long activeUsersCount = userServiceClient.getActiveUsersCount();
+            log.info("Fetching active users count from user service...");
+            Long activeUsersCount = (long) orderRepository.findDistinctUserIds().size();
+            log.info("Active users count received: {}", activeUsersCount);
             if (activeUsersCount != null) {
                 activeUsers = activeUsersCount;
+            } else {
+                log.warn("Active users count is null");
             }
             
+            log.info("Fetching all users from user service...");
             ApiResponse<Object> usersResponse = userServiceClient.getAllUsers();
             if (usersResponse.isSuccess() && usersResponse.getData() != null) {
                 @SuppressWarnings("unchecked")
                 java.util.List<java.util.Map<String, Object>> users = (java.util.List<java.util.Map<String, Object>>) usersResponse.getData();
                 totalUsers = users.size();
+                log.info("Total users count: {}", totalUsers);
+            } else {
+                log.warn("Failed to get users response or data is null");
             }
         } catch (Exception e) {
-            log.error("Failed to fetch users: {}", e.getMessage());
+            log.error("Failed to fetch users: {}", e.getMessage(), e);
         }
 
         stats.put("totalOrders", totalOrders);
@@ -375,6 +382,8 @@ public class OrderService {
         stats.put("totalProducts", totalProducts);
         stats.put("activeUsers", activeUsers);
         stats.put("totalUsers", totalUsers);
+        
+        log.info("📊 Final stats - activeUsers: {}, totalUsers: {}", activeUsers, totalUsers);
 
         return stats;
     }
@@ -448,8 +457,10 @@ public class OrderService {
             if ("PAYMENT_SUCCESS".equalsIgnoreCase(status)) {
                 order.setStatus(Order.OrderStatus.PAYMENT_SUCCESS);
                 order.setPaymentStatus(Order.PaymentStatus.COMPLETED);
-                orderRepository.save(order);
-                log.info("Order marked as PAYMENT_SUCCESS for order {}", orderId);
+                Order saved = orderRepository.save(order);
+                orderRepository.flush(); // Force immediate DB write
+                log.info("✅ Order {} payment status updated: orderStatus={}, paymentStatus={}", 
+                    orderId, saved.getStatus(), saved.getPaymentStatus());
                 
                 // Send order confirmation notification
                 sendOrderNotification(orderId, order.getUserId(), "CONFIRMED");
@@ -461,11 +472,13 @@ public class OrderService {
             order.setPaymentStatus(paymentStatus);
 
             if (paymentStatus == Order.PaymentStatus.COMPLETED) {
-                order.setStatus(Order.OrderStatus.CONFIRMED);
+                order.setStatus(Order.OrderStatus.PAYMENT_SUCCESS);
             }
 
-            orderRepository.save(order);
-            log.info("Payment status updated successfully for order {}: {}", orderId, status);
+            Order saved = orderRepository.save(order);
+            orderRepository.flush(); // Force immediate DB write
+            log.info("✅ Payment status updated for order {}: orderStatus={}, paymentStatus={}", 
+                orderId, saved.getStatus(), saved.getPaymentStatus());
         } catch (Exception e) {
             log.error("Failed to update payment status for order {}: {}", orderId, e.getMessage(), e);
             throw new RuntimeException("Failed to update payment status: " + e.getMessage(), e);
@@ -496,22 +509,81 @@ public class OrderService {
     }
     
     public List<OrderDto> getOrdersByDeliveryAgent(Long agentId) {
-        return orderRepository.findByDeliveryAgentId(agentId).stream()
+        List<Order> orders = orderRepository.findByDeliveryAgentId(agentId);
+        log.info("Found {} total orders for agent {}", orders.size(), agentId);
+        
+        List<OrderDto> result = orders.stream()
+                .filter(order -> order.getStatus() == Order.OrderStatus.OUT_FOR_DELIVERY)
                 .map(this::toDto)
                 .collect(Collectors.toList());
+        
+        log.info("Returning {} OUT_FOR_DELIVERY orders for agent {}", result.size(), agentId);
+        return result;
     }
     
     public List<OrderDto> getInTransitOrdersByAgent(Long agentId) {
-        return orderRepository.findByDeliveryAgentId(agentId).stream()
-                .filter(order -> order.getStatus() == Order.OrderStatus.OUT_FOR_DELIVERY)
+        return orderRepository.findByDeliveryAgentIdAndStatus(agentId, Order.OrderStatus.OUT_FOR_DELIVERY).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
     
     public List<OrderDto> getPendingDeliveryOrders() {
-        return orderRepository.findAll().stream()
-                .filter(order -> order.getDeliveryAgentId() == null && order.getStatus() == Order.OrderStatus.PACKED)
+        List<Order.OrderStatus> pendingStatuses = java.util.Arrays.asList(
+            Order.OrderStatus.PAYMENT_SUCCESS,
+            Order.OrderStatus.PROCESSING,
+            Order.OrderStatus.PACKED,
+            Order.OrderStatus.CONFIRMED
+        );
+        return orderRepository.findByStatusIn(pendingStatuses).stream()
+                .filter(order -> order.getDeliveryAgentId() == null)
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+    
+    public List<OrderDto> getDeliveredOrdersByAgent(Long agentId) {
+        return orderRepository.findByDeliveryAgentIdAndStatus(agentId, Order.OrderStatus.DELIVERED).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Assigns delivery agent using least-loaded strategy
+     * Returns the agent with fewest active deliveries
+     */
+    private Long assignDeliveryAgent() {
+        try {
+            ApiResponse<java.util.List<Object>> agentsResponse = userServiceClient.getDeliveryAgents();
+            if (!agentsResponse.isSuccess() || agentsResponse.getData() == null || agentsResponse.getData().isEmpty()) {
+                log.warn("No delivery agents available");
+                return null;
+            }
+            
+            @SuppressWarnings("unchecked")
+            java.util.List<java.util.Map<String, Object>> agents = 
+                (java.util.List<java.util.Map<String, Object>>) (Object) agentsResponse.getData();
+            
+            // Find agent with least active orders
+            Long selectedAgent = null;
+            long minOrders = Long.MAX_VALUE;
+            
+            for (java.util.Map<String, Object> agent : agents) {
+                Long agentId = ((Number) agent.get("id")).longValue();
+                long activeOrders = orderRepository.findByDeliveryAgentId(agentId).stream()
+                    .filter(o -> o.getStatus() == Order.OrderStatus.OUT_FOR_DELIVERY)
+                    .count();
+                
+                if (activeOrders < minOrders) {
+                    minOrders = activeOrders;
+                    selectedAgent = agentId;
+                }
+            }
+            
+            log.info("Selected delivery agent {} with {} active orders", selectedAgent, minOrders);
+            return selectedAgent;
+            
+        } catch (Exception e) {
+            log.error("Failed to assign delivery agent: {}", e.getMessage());
+            return null;
+        }
     }
 }

@@ -28,6 +28,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        log.info("👉 Register request received - Email: {}, Role: {}", request.getEmail(), request.getRole());
         String email = request.getEmail().trim().toLowerCase();
         
         if (userRepository.existsByEmail(email)) {
@@ -54,6 +55,13 @@ public class AuthService {
 
         User saved = userRepository.save(user);
         log.info("User registered: {}", saved.getEmail());
+        
+        // Generate and send OTP immediately after registration (non-blocking)
+        try {
+            generateOtp(email);
+        } catch (Exception e) {
+            log.error("Failed to send OTP email, but registration succeeded: {}", e.getMessage());
+        }
 
         String token = jwtTokenProvider.generateToken(saved.getEmail(), saved.getId());
         return new AuthResponse(token, toDto(saved));
@@ -81,35 +89,72 @@ public class AuthService {
 
     @Transactional
     public void generateOtp(String email) {
-        User user = userRepository.findByEmail(email)
+        String normalizedEmail = email.trim().toLowerCase();
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new BadRequestException("Email not found"));
 
+        // Invalidate all previous OTPs for this email BEFORE creating new one
+        java.util.List<OtpToken> oldTokens = otpTokenRepository.findAll().stream()
+                .filter(token -> token.getEmail().equalsIgnoreCase(normalizedEmail) && !token.getUsed())
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (OtpToken token : oldTokens) {
+            token.setUsed(true);
+            otpTokenRepository.save(token);
+            log.info("Invalidated old OTP for: {}", normalizedEmail);
+        }
+
+        // Generate new OTP
         String otp = String.format("%06d", new Random().nextInt(999999));
         OtpToken otpToken = new OtpToken();
-        otpToken.setEmail(email);
+        otpToken.setEmail(normalizedEmail);
         otpToken.setOtp(otp);
         otpToken.setExpiresAt(LocalDateTime.now().plusMinutes(5));
         otpToken.setUsed(false);
 
-        otpTokenRepository.save(otpToken);
+        OtpToken savedToken = otpTokenRepository.save(otpToken);
+        log.info("✅ New OTP created - ID: {}, Email: {}, OTP: {}, Used: {}", 
+                savedToken.getId(), savedToken.getEmail(), savedToken.getOtp(), savedToken.getUsed());
         
-        // Send OTP email
-        emailService.sendOtpEmail(email, otp, user.getName());
-        log.info("OTP generated and sent to: {}", email);
+        // Send OTP email (non-blocking)
+        try {
+            emailService.sendOtpEmail(normalizedEmail, otp, user.getName());
+            log.info("OTP generated and sent to: {}", normalizedEmail);
+        } catch (Exception e) {
+            log.error("Failed to send OTP email to {}: {}", normalizedEmail, e.getMessage());
+            log.info("OTP generated but email failed. OTP: {} (for testing)", otp);
+        }
     }
 
     @Transactional
     public void verifyOtp(String email, String otp) {
-        OtpToken otpToken = otpTokenRepository.findByEmailAndOtpAndUsedFalse(email, otp)
-                .orElseThrow(() -> new BadRequestException("Invalid or expired OTP"));
+        try {
+            String normalizedEmail = email.trim().toLowerCase();
+            String normalizedOtp = otp.trim();
+            
+            log.info("Attempting OTP verification for email: {}, OTP: {}", normalizedEmail, normalizedOtp);
+            
+            OtpToken otpToken = otpTokenRepository.findByEmailAndOtpAndUsedFalse(normalizedEmail, normalizedOtp)
+                    .orElseThrow(() -> {
+                        log.error("OTP not found or already used for email: {}, OTP: {}", normalizedEmail, normalizedOtp);
+                        return new BadRequestException("Invalid or expired OTP");
+                    });
 
-        if (otpToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("OTP has expired");
+            if (otpToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+                log.error("OTP expired for email: {}. Expired at: {}, Current time: {}", 
+                         normalizedEmail, otpToken.getExpiresAt(), LocalDateTime.now());
+                throw new BadRequestException("OTP has expired");
+            }
+
+            otpToken.setUsed(true);
+            otpTokenRepository.save(otpToken);
+            log.info("✅ OTP verified successfully for: {}", normalizedEmail);
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("❌ Unexpected error during OTP verification: {}", e.getMessage(), e);
+            throw new RuntimeException("OTP verification failed: " + e.getMessage(), e);
         }
-
-        otpToken.setUsed(true);
-        otpTokenRepository.save(otpToken);
-        log.info("OTP verified for: {}", email);
     }
 
     @Transactional

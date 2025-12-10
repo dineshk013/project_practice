@@ -1,5 +1,6 @@
 package com.revcart.cartservice.service;
 
+import com.revcart.cartservice.client.NotificationServiceClient;
 import com.revcart.cartservice.client.ProductServiceClient;
 import com.revcart.cartservice.dto.*;
 import com.revcart.cartservice.entity.Cart;
@@ -13,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +26,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductServiceClient productServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     public CartDto getCart(Long userId) {
         log.info("CartService.getCart - userId: {}", userId);
@@ -80,6 +84,10 @@ public class CartService {
 
         cart.setUpdatedAt(java.time.LocalDateTime.now());
         Cart saved = cartRepository.save(cart);
+        
+        // Send notification
+        sendCartNotification(userId, product.getName(), "added to cart");
+        
         return toDto(saved);
     }
 
@@ -205,5 +213,19 @@ public class CartService {
                 item.getPrice(),
                 item.getImageUrl()
         );
+    }
+
+    private void sendCartNotification(Long userId, String productName, String action) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("userId", userId);
+            request.put("title", "Cart Updated");
+            request.put("message", productName + " " + action + " successfully");
+            request.put("type", "CART");
+            notificationServiceClient.createNotification(request);
+            log.info("Cart notification sent to user: {}", userId);
+        } catch (Exception e) {
+            log.error("Failed to send cart notification: {}", e.getMessage());
+        }
     }
 }

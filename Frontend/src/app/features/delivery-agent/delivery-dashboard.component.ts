@@ -92,13 +92,6 @@ interface ApiResponse<T> {
                   <p class="font-semibold">₹{{ order.total.toFixed(2) }}</p>
 
                   <div class="flex gap-2">
-                    @if (order.status === 'processing') {
-                      <button (click)="updateOrderStatus(order.id, 'in_transit')"
-                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Start Delivery
-                      </button>
-                    }
-
                     @if (order.status === 'in_transit') {
                       <button (click)="updateOrderStatus(order.id, 'delivered')"
                         class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -131,6 +124,7 @@ export class DeliveryDashboardComponent implements OnInit {
   assignedOrders: Order[] = [];
   inTransitOrders: Order[] = [];
   pendingOrders: Order[] = [];
+  deliveredOrders: Order[] = [];
   deliveredToday = 0;
 
   ngOnInit(): void {
@@ -141,37 +135,53 @@ export class DeliveryDashboardComponent implements OnInit {
     const userId = localStorage.getItem('userId') || '';
     const headers = { 'X-User-Id': userId };
 
-    // Assigned
+    // Assigned (active orders)
     this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/delivery/orders/assigned`, { headers })
       .subscribe(resp => {
-        if (resp.success) this.assignedOrders = resp.data.map(this.mapBackendOrder);
-        this.calculateDelivered();
+        if (resp.success) {
+          this.assignedOrders = resp.data.map(this.mapBackendOrder);
+        }
       });
 
     // In transit
     this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/delivery/orders/in-transit`, { headers })
       .subscribe(resp => {
-        if (resp.success) this.inTransitOrders = resp.data.map(this.mapBackendOrder);
+        if (resp.success) {
+          this.inTransitOrders = resp.data.map(this.mapBackendOrder);
+        }
       });
 
-    // Pending
+    // Pending (not yet assigned)
     this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/delivery/orders/pending`, { headers })
       .subscribe(resp => {
-        if (resp.success) this.pendingOrders = resp.data.map(this.mapBackendOrder);
+        if (resp.success) {
+          this.pendingOrders = resp.data.map(this.mapBackendOrder);
+        }
+      });
+
+    // Delivered orders for this agent
+    this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/delivery/orders/delivered`, { headers })
+      .subscribe(resp => {
+        if (resp.success) {
+          this.deliveredOrders = resp.data.map(this.mapBackendOrder);
+          this.calculateDelivered();
+        }
       });
   }
 
   private calculateDelivered(): void {
-    this.deliveredToday = this.assignedOrders.filter(o => o.status === 'delivered').length;
+    const today = new Date().toLocaleDateString();
+    this.deliveredToday = this.deliveredOrders.filter(o => o.date === today).length;
   }
 
   updateOrderStatus(orderId: string, status: Order['status']) {
-    const mapping: any = {
-      'in_transit': 'IN_TRANSIT',
-      'delivered': 'DELIVERED'
+    const statusMap: Record<string, string> = {
+      processing: 'OUT_FOR_DELIVERY',
+      in_transit: 'OUT_FOR_DELIVERY',
+      delivered: 'DELIVERED'
     };
 
-    const backendStatus = mapping[status];
+    const backendStatus = statusMap[status] || 'OUT_FOR_DELIVERY';
 
     this.http.post<ApiResponse<any>>(
       `${environment.apiUrl}/delivery/orders/${orderId}/status`,
@@ -179,22 +189,31 @@ export class DeliveryDashboardComponent implements OnInit {
     ).subscribe(() => this.loadDeliveries());
   }
 
-  private mapBackendOrder = (dto: any): Order => ({
-    id: String(dto.orderId || dto.id),
-    date: dto.createdAt ? new Date(dto.createdAt).toLocaleDateString() : '',
-    status: this.mapStatus(dto.status),
-    items: [],                                // backend does not send items → empty array
-    total: Number(dto.totalAmount || 0),
-    deliveryAddress: dto.deliveryAddress || dto.address || ''
-  });
+  private mapBackendOrder = (dto: any): Order => {
+    const address = dto.deliveryAddress 
+      ? `${dto.deliveryAddress.street || ''}, ${dto.deliveryAddress.city || ''}, ${dto.deliveryAddress.state || ''} ${dto.deliveryAddress.zipCode || ''}`.trim()
+      : 'Address not available';
+    
+    return {
+      id: String(dto.orderId || dto.id),
+      date: dto.createdAt ? new Date(dto.createdAt).toLocaleDateString() : '',
+      status: this.mapStatus(dto.status),
+      items: [],
+      total: Number(dto.totalAmount || 0),
+      deliveryAddress: address
+    };
+  }
 
   private mapStatus(s: string): Order['status'] {
     return ({
-      'ASSIGNED': 'processing',
+      'PENDING': 'processing',
+      'PAYMENT_SUCCESS': 'processing',
+      'PROCESSING': 'processing',
+      'PACKED': 'processing',
+      'CONFIRMED': 'processing',
       'OUT_FOR_DELIVERY': 'in_transit',
-      'IN_TRANSIT': 'in_transit',
-      'DELIVERED': 'delivered',
-      'PICKED_UP': 'in_transit'
+      'SHIPPED': 'in_transit',
+      'DELIVERED': 'delivered'
     } as any)[s] || 'processing';
   }
 }

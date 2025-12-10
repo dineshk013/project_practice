@@ -7,6 +7,12 @@ export interface UpiDetails {
   upiId: string;
 }
 
+interface UpiApp {
+  name: string;
+  icon: string;
+  suffix: string;
+}
+
 @Component({
   selector: 'app-upi-payment-modal',
   standalone: true,
@@ -17,17 +23,51 @@ export interface UpiDetails {
            (click)="onBackdropClick($event)">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4"
              (click)="$event.stopPropagation()">
-          <div class="flex items-center justify-between p-6 border-b">
-            <div class="flex items-center gap-2">
-              <lucide-icon [img]="Smartphone" class="h-5 w-5 text-primary"></lucide-icon>
-              <h2 class="text-xl font-bold">Enter UPI Details</h2>
+          <!-- Razorpay Header -->
+          <div class="bg-[#528FF0] text-white p-6 rounded-t-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold">RevCart</h2>
+                <p class="text-sm opacity-90">Powered by Razorpay</p>
+              </div>
+              <button (click)="closeModal()" class="text-white hover:bg-white/20 rounded p-1 transition-colors">
+                <lucide-icon [img]="X" class="h-5 w-5"></lucide-icon>
+              </button>
             </div>
-            <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-              <lucide-icon [img]="X" class="h-5 w-5"></lucide-icon>
-            </button>
+            @if (amount()) {
+              <div class="mt-4">
+                <p class="text-sm opacity-90">Amount to pay</p>
+                <p class="text-2xl font-bold">₹{{ amount()?.toFixed(2) }}</p>
+              </div>
+            }
           </div>
 
           <form (ngSubmit)="onSubmit()" class="p-6 space-y-4">
+            <!-- Popular UPI Apps -->
+            <div>
+              <label class="block text-sm font-medium mb-2">Choose UPI App</label>
+              <div class="grid grid-cols-3 gap-3 mb-4">
+                @for (app of upiApps; track app.name) {
+                  <button
+                    type="button"
+                    (click)="selectUpiApp(app)"
+                    class="p-3 border rounded-lg hover:border-[#528FF0] hover:bg-blue-50 transition-colors text-center">
+                    <div class="text-2xl mb-1">{{ app.icon }}</div>
+                    <div class="text-xs font-medium">{{ app.name }}</div>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="relative">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+              </div>
+              <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-gray-500">or enter UPI ID</span>
+              </div>
+            </div>
+
             <div>
               <label class="block text-sm font-medium mb-1">UPI ID *</label>
               <input
@@ -35,14 +75,14 @@ export interface UpiDetails {
                 [(ngModel)]="upiDetails().upiId"
                 name="upiId"
                 required
-                placeholder="yourname@paytm or 9876543210@paytm"
-                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="yourname@paytm"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#528FF0]"
                 [class.border-red-500]="error()"
               />
               @if (error()) {
                 <p class="text-red-500 text-xs mt-1">{{ error() }}</p>
               }
-              <p class="text-gray-500 text-xs mt-1">Note: Your UPI ID remains private</p>
+              <p class="text-gray-500 text-xs mt-1">Example: success&#64;razorpay</p>
             </div>
 
             @if (externalError()) {
@@ -51,13 +91,13 @@ export interface UpiDetails {
               </div>
             }
 
-            <div class="flex gap-3 pt-4">
-              <button type="button" (click)="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                Cancel
+            <div class="pt-4">
+              <button type="submit" [disabled]="isProcessing()" class="w-full px-4 py-3 bg-[#528FF0] text-white rounded-md hover:bg-[#3d7ad6] disabled:opacity-50 transition-colors font-medium">
+                {{ isProcessing() ? 'Processing Payment...' : 'Pay ₹' + (amount()?.toFixed(2) || '0.00') }}
               </button>
-              <button type="submit" [disabled]="isProcessing()" class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                {{ isProcessing() ? 'Processing...' : 'Pay Now' }}
-              </button>
+              <p class="text-xs text-center text-gray-500 mt-3">
+                🔒 Secured by Razorpay (Test Mode)
+              </p>
             </div>
           </form>
         </div>
@@ -67,6 +107,7 @@ export interface UpiDetails {
 })
 export class UpiPaymentModalComponent {
   isOpen = input.required<boolean>();
+  amount = input<number | null>(null);
   externalError = input<string | null>(null);
   
   paymentSubmitted = output<UpiDetails>();
@@ -78,6 +119,18 @@ export class UpiPaymentModalComponent {
   upiDetails = signal<UpiDetails>({ upiId: '' });
   error = signal<string | null>(null);
   isProcessing = signal(false);
+
+  upiApps: UpiApp[] = [
+    { name: 'PhonePe', icon: '🟣', suffix: '@ybl' },
+    { name: 'Google Pay', icon: '🔵', suffix: '@okaxis' },
+    { name: 'Paytm', icon: '🔵', suffix: '@paytm' }
+  ];
+
+  selectUpiApp(app: UpiApp): void {
+    const currentId = this.upiDetails().upiId;
+    const username = currentId.split('@')[0] || 'yourname';
+    this.upiDetails.set({ upiId: `${username}${app.suffix}` });
+  }
 
   validateForm(): boolean {
     const upiId = this.upiDetails().upiId.trim();
