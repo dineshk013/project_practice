@@ -86,7 +86,7 @@ pipeline {
             steps {
                 dir('Frontend') {
                     bat 'npm ci'
-                    bat 'npm run build --configuration=production'
+                    bat 'npm run build -- --configuration=production'
                 }
             }
         }

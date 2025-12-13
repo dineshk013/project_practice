@@ -6,7 +6,8 @@
     "format": "prettier --write \"src/**/*.{ts,js,css,html,json,md}\"",
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build --configuration=production",
+    "build:prod": "ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:Frontend": "node dist/frontend/server/server.mjs"
