@@ -86,7 +86,7 @@ export class ProfileComponent implements OnInit {
 
     loadProfile(): void {
         this.isLoading.set(true);
-        this.http.get<ProfileResponse>(`${environment.apiUrl}/profile`).subscribe({
+        this.http.get<ProfileResponse>(`${environment.apiUrl}/users/profile`).subscribe({
             next: (response) => {
                 const payload = this.extractProfilePayload(response);
                 if (payload) {
@@ -125,7 +125,7 @@ export class ProfileComponent implements OnInit {
             phone: this.profileData().phone
         };
 
-        this.http.put<ApiResponse<any>>(`${environment.apiUrl}/profile`, payload).subscribe({
+        this.http.put<ApiResponse<any>>(`${environment.apiUrl}/users/profile`, payload).subscribe({
             next: (response) => {
                 this.isLoading.set(false);
                 this.successMessage.set('Profile updated successfully');
@@ -142,7 +142,7 @@ export class ProfileComponent implements OnInit {
     }
 
     loadAddresses(): void {
-        this.http.get<ApiResponse<Address[]>>(`${environment.apiUrl}/profile/addresses`).subscribe({
+        this.http.get<ApiResponse<Address[]>>(`${environment.apiUrl}/users/addresses`).subscribe({
             next: (response) => {
                 if (response.data) {
                     this.addresses.set(response.data);
@@ -188,8 +188,8 @@ export class ProfileComponent implements OnInit {
         this.errorMessage.set('');
 
         const url = this.editingAddress
-            ? `${environment.apiUrl}/profile/addresses/${this.editingAddress.id}`
-            : `${environment.apiUrl}/profile/addresses`;
+            ? `${environment.apiUrl}/users/addresses/${this.editingAddress.id}`
+            : `${environment.apiUrl}/users/addresses`;
 
         const request = this.editingAddress
             ? this.http.put<ApiResponse<Address>>(url, this.addressForm())
@@ -216,7 +216,7 @@ export class ProfileComponent implements OnInit {
             return;
         }
 
-        this.http.delete<ApiResponse<void>>(`${environment.apiUrl}/profile/addresses/${id}`).subscribe({
+        this.http.delete<ApiResponse<void>>(`${environment.apiUrl}/users/addresses/${id}`).subscribe({
             next: () => {
                 this.loadAddresses();
                 this.successMessage.set('Address deleted successfully');

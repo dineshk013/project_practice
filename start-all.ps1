@@ -5,6 +5,9 @@ Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "  RevCart Microservices Startup" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
+# Set environment variables
+$env:DB_PASSWORD="Mahidinesh@07"
+
 # Check if MySQL is running
 Write-Host "Checking MySQL..." -NoNewline
 try {
@@ -40,32 +43,32 @@ Write-Host "This will open 10 terminal windows`n" -ForegroundColor Yellow
 
 # Start Gateway (MUST START FIRST)
 Write-Host "[1/10] Starting Gateway (Port 8080)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\revcart-gateway'; Write-Host 'Starting Gateway...' -ForegroundColor Cyan; mvn spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\revcart-gateway'; `$env:DB_PASSWORD='Mahidinesh@07'; Write-Host 'Starting Gateway...' -ForegroundColor Cyan; mvn spring-boot:run"
 Start-Sleep -Seconds 15
 
 # Start User Service
 Write-Host "[2/10] Starting User Service (Port 8081)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\user-service'; Write-Host 'Starting User Service...' -ForegroundColor Cyan; mvn spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\user-service'; `$env:DB_PASSWORD='Mahidinesh@07'; Write-Host 'Starting User Service...' -ForegroundColor Cyan; mvn spring-boot:run"
 Start-Sleep -Seconds 8
 
 # Start Product Service
 Write-Host "[3/10] Starting Product Service (Port 8082)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\product-service'; Write-Host 'Starting Product Service...' -ForegroundColor Cyan; mvn spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\product-service'; `$env:DB_PASSWORD='Mahidinesh@07'; Write-Host 'Starting Product Service...' -ForegroundColor Cyan; mvn spring-boot:run"
 Start-Sleep -Seconds 8
 
 # Start Cart Service
 Write-Host "[4/10] Starting Cart Service (Port 8083)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\cart-service'; Write-Host 'Starting Cart Service...' -ForegroundColor Cyan; mvn spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\cart-service'; `$env:DB_PASSWORD='Mahidinesh@07'; Write-Host 'Starting Cart Service...' -ForegroundColor Cyan; mvn spring-boot:run"
 Start-Sleep -Seconds 8
 
 # Start Order Service
 Write-Host "[5/10] Starting Order Service (Port 8084)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\order-service'; Write-Host 'Starting Order Service...' -ForegroundColor Cyan; mvn spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\order-service'; `$env:DB_PASSWORD='Mahidinesh@07'; Write-Host 'Starting Order Service...' -ForegroundColor Cyan; mvn spring-boot:run"
 Start-Sleep -Seconds 8
 
 # Start Payment Service
 Write-Host "[6/10] Starting Payment Service (Port 8085)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\payment-service'; Write-Host 'Starting Payment Service...' -ForegroundColor Cyan; mvn spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\payment-service'; `$env:DB_PASSWORD='Mahidinesh@07'; Write-Host 'Starting Payment Service...' -ForegroundColor Cyan; mvn spring-boot:run"
 Start-Sleep -Seconds 8
 
 # Start Notification Service

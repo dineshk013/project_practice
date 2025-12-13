@@ -1,3 +1,0 @@
-USE revcart_users;
-ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'CUSTOMER';
-UPDATE users SET role = 'CUSTOMER' WHERE role = 'USER';
