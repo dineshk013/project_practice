@@ -97,23 +97,62 @@ pipeline {
             }
         }
         
-        stage('Build Complete') {
+        stage('Build Docker Images') {
             steps {
-                echo '✅ Build and tests completed successfully!'
-                echo '📦 Docker images built locally'
-                echo ''
-                echo '🚀 Next steps (manual):'
-                echo '1. Tag images for ECR:'
-                echo '   docker tag revcart_microservices-user-service:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/revcart-user-service:latest'
-                echo ''
-                echo '2. Push to ECR:'
-                echo '   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com'
-                echo '   docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/revcart-user-service:latest'
-                echo ''
-                echo '3. Deploy on EC2:'
-                echo '   ssh ec2-user@<EC2_IP>'
-                echo '   docker-compose pull'
-                echo '   docker-compose up -d'
+                echo '🐳 Building Docker images...'
+                bat 'docker-compose build'
+            }
+        }
+        
+        stage('Tag and Push to ECR') {
+            environment {
+                AWS_ACCOUNT_ID = '123456789012' // Replace with your AWS Account ID
+                AWS_REGION = 'us-east-1'
+                ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+            }
+            steps {
+                echo '🏷️ Tagging and pushing images to ECR...'
+                
+                // Login to ECR
+                bat 'aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REGISTRY%'
+                
+                // Tag and push each service
+                script {
+                    def services = [
+                        'user-service', 'product-service', 'cart-service', 'order-service',
+                        'payment-service', 'notification-service', 'delivery-service', 
+                        'analytics-service', 'gateway', 'frontend'
+                    ]
+                    
+                    services.each { service ->
+                        bat "docker tag revcart_microservices-${service}:latest %ECR_REGISTRY%/revcart-${service}:latest"
+                        bat "docker tag revcart_microservices-${service}:latest %ECR_REGISTRY%/revcart-${service}:%BUILD_NUMBER%"
+                        bat "docker push %ECR_REGISTRY%/revcart-${service}:latest"
+                        bat "docker push %ECR_REGISTRY%/revcart-${service}:%BUILD_NUMBER%"
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to EC2') {
+            environment {
+                EC2_HOST = 'your-ec2-public-ip' // Replace with your EC2 IP
+                EC2_USER = 'ec2-user'
+            }
+            steps {
+                echo '🚀 Deploying to EC2...'
+                
+                // Copy docker-compose file to EC2
+                bat 'scp -o StrictHostKeyChecking=no docker-compose.yml %EC2_USER%@%EC2_HOST%:~/'
+                
+                // Deploy on EC2
+                bat '''
+                ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% "
+                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin %ECR_REGISTRY% &&
+                    docker-compose pull &&
+                    docker-compose up -d
+                "
+                '''
             }
         }
     }
@@ -121,9 +160,16 @@ pipeline {
     post {
         success {
             echo '✅ Pipeline completed successfully!'
+            echo '🎉 Application deployed to EC2!'
+            echo '🌐 Access your application at: http://your-ec2-public-ip:4200'
         }
         failure {
             echo '❌ Pipeline failed!'
+            echo '📧 Check Jenkins logs for details'
+        }
+        always {
+            // Clean up local Docker images to save space
+            bat 'docker system prune -f'
         }
     }
 }

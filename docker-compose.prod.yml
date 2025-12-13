@@ -12,7 +12,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init-mysql.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - revcart-network
     healthcheck:
@@ -42,20 +41,10 @@ services:
 
   # API Gateway
   gateway:
-    build:
-      context: ./revcart-gateway
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-gateway:latest
     container_name: revcart-gateway
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - USER_SERVICE_URL=http://user-service:8081
-      - PRODUCT_SERVICE_URL=http://product-service:8082
-      - CART_SERVICE_URL=http://cart-service:8083
-      - ORDER_SERVICE_URL=http://order-service:8084
-      - PAYMENT_SERVICE_URL=http://payment-service:8085
-      - NOTIFICATION_SERVICE_URL=http://notification-service:8086
-      - DELIVERY_SERVICE_URL=http://delivery-service:8087
-      - ANALYTICS_SERVICE_URL=http://analytics-service:8088
     ports:
       - "8080:8080"
     depends_on:
@@ -73,9 +62,7 @@ services:
 
   # User Service
   user-service:
-    build:
-      context: ./user-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-user-service:latest
     container_name: revcart-user-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -93,9 +80,7 @@ services:
 
   # Product Service
   product-service:
-    build:
-      context: ./product-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-product-service:latest
     container_name: revcart-product-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -113,9 +98,7 @@ services:
 
   # Cart Service
   cart-service:
-    build:
-      context: ./cart-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-cart-service:latest
     container_name: revcart-cart-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -135,21 +118,13 @@ services:
 
   # Order Service
   order-service:
-    build:
-      context: ./order-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-order-service:latest
     container_name: revcart-order-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revcart?createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
-      - USER_SERVICE_URL=http://user-service:8081
-      - CART_SERVICE_URL=http://cart-service:8083
-      - PRODUCT_SERVICE_URL=http://product-service:8082
-      - PAYMENT_SERVICE_URL=http://payment-service:8085
-      - DELIVERY_SERVICE_URL=http://delivery-service:8087
-      - NOTIFICATION_SERVICE_URL=http://notification-service:8086
     ports:
       - "8084:8084"
     depends_on:
@@ -161,16 +136,13 @@ services:
 
   # Payment Service
   payment-service:
-    build:
-      context: ./payment-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-payment-service:latest
     container_name: revcart-payment-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revcart?createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
-      - ORDER_SERVICE_URL=http://order-service:8084
     ports:
       - "8085:8085"
     depends_on:
@@ -182,9 +154,7 @@ services:
 
   # Notification Service
   notification-service:
-    build:
-      context: ./notification-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-notification-service:latest
     container_name: revcart-notification-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -200,9 +170,7 @@ services:
 
   # Delivery Service
   delivery-service:
-    build:
-      context: ./delivery-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-delivery-service:latest
     container_name: revcart-delivery-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -218,9 +186,7 @@ services:
 
   # Analytics Service
   analytics-service:
-    build:
-      context: ./analytics-service
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-analytics-service:latest
     container_name: revcart-analytics-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -236,9 +202,7 @@ services:
 
   # Frontend
   frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
+    image: ${ECR_REGISTRY}/revcart-frontend:latest
     container_name: revcart-frontend
     environment:
       - API_URL=http://localhost:8080
